@@ -71,7 +71,7 @@ async function deploy(thisObject, contracts) {
 
 // Defaults to e18 using amount * 10^18
 function getBigNumber(amount, decimals = 18) {
-  return ethers.utils.parseEther(amount);
+  return ethers.utils.parseEther(String(amount));
 }
 
 async function expectError(message, fn) {

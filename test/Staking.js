@@ -14,7 +14,7 @@ describe("Staking", function() {
   });
 
   beforeEach(async function() {
-    await deploy(this, [["rewardToken", this.XRUNE, [[this.dev.address]]]]);
+    await deploy(this, [["rewardToken", this.XRUNE, [this.dev.address]]]);
 
     await deploy(this, [
       ["token", this.ERC20Mock, ["Token", "TKN", getBigNumber(10)]],
@@ -32,7 +32,7 @@ describe("Staking", function() {
 
   describe("PoolLength", function() {
     it("PoolLength should execute", async function() {
-      await this.staking.add(10, this.token.address);
+      await this.staking.add(getBigNumber(10), this.token.address);
       expect(await this.staking.poolLength()).to.be.equal(1);
     });
   });

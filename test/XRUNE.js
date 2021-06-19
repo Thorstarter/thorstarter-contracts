@@ -15,7 +15,7 @@ describe("XRUNE", function() {
   });
 
   beforeEach(async function() {
-    await deploy(this, [["xrune", this.XRUNE, []]]);
+    await deploy(this, [["xrune", this.XRUNE, [this.alice.getAddress()]]]);
   });
 
   it("mints 500M to deployer", async function() {
@@ -72,6 +72,7 @@ describe("XRUNE", function() {
 
   it("dailyEmit works when era pending", async function() {
     await this.xrune.setReserve(this.bob.getAddress());
+    await this.xrune.toggleEmitting();
     await this.xrune.dailyEmit();
     const nextEra = await this.xrune.nextEra();
     const dailyEmit = await this.xrune.dailyEmission();

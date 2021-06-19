@@ -3,21 +3,21 @@ pragma solidity ^0.8.4;
 
 import "./ERC677.sol";
 import "./ERC777Permit.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./utils/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 
 contract XRUNE is ERC777, ERC777Permit, ERC677, Ownable {
     uint public constant ERA_SECONDS = 86400;
+    uint public constant MAX_SUPPLY = 1000000000 ether;
     uint public nextEra = 1622433600; // 2021-05-31
     uint public curve = 1024;
-    bool public emiting = false;
+    bool public emitting = false;
     address public reserve = address(0);
 
     event NewEra(uint256 time, uint256 emission);
 
-    constructor(address owner) public ERC777("XRUNE Token", "XRUNE", new address[](0)) ERC777Permit("XRUNE") {
-        transferOwnership(owner);
-        _mint(owner, 500000000 ether, "", "");
+    constructor(address owner) public ERC777("XRUNE Token", "XRUNE", new address[](0)) ERC777Permit("XRUNE") Ownable(owner) {
+        _mint(owner, MAX_SUPPLY / 2, "", "");
     }
 
     function setCurve(uint _curve) public onlyOwner {
@@ -25,8 +25,8 @@ contract XRUNE is ERC777, ERC777Permit, ERC677, Ownable {
         curve = _curve;
     }
 
-    function setEmiting(bool _emiting) public onlyOwner {
-        emiting = _emiting;
+    function toggleEmitting() public onlyOwner {
+        emitting = !emitting;
     }
 
     function setReserve(address _reserve) public onlyOwner {
@@ -47,7 +47,7 @@ contract XRUNE is ERC777, ERC777Permit, ERC677, Ownable {
 
     function dailyEmit() public {
         // solhint-disable-next-line not-rely-on-time
-        if ((block.timestamp >= nextEra) && emiting && reserve != address(0)) {
+        if ((block.timestamp >= nextEra) && emitting && reserve != address(0)) {
             uint _emission = dailyEmission();
             emit NewEra(nextEra, _emission);
             nextEra = nextEra + ERA_SECONDS;
@@ -56,6 +56,6 @@ contract XRUNE is ERC777, ERC777Permit, ERC677, Ownable {
     }
 
     function dailyEmission() public view returns (uint) {
-        return (1000000000 ether - totalSupply()) / curve;
+        return (MAX_SUPPLY - totalSupply()) / curve;
     }
 }
