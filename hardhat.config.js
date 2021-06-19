@@ -40,6 +40,10 @@ module.exports = {
       accounts: [
         "502cd3847e2c034df8d97ce706d3cffc5592da35b701f6d02ad05b9aa446abd2"
       ]
+    },
+    mainnet: {
+      url: "https://mainnet.infura.io/v3/f0039abafaab4ecf9b573383a5eba292",
+      accounts: []
     }
   },
   gasReporter: {

@@ -26,7 +26,7 @@ async function main() {
     EIP2470_FACTORY_ABI,
     signer
   );
-  const salt = ethers.utils.id("2");
+  const salt = ethers.utils.id("1");
   const param = ethers.utils.defaultAbiCoder.encode(
     ["address"],
     [await signer.getAddress()]
