@@ -8,14 +8,6 @@ if (process.env.GAS_REPORT === "true") {
   require("hardhat-gas-reporter");
 }
 
-task("accounts", "Prints the list of accounts", async () => {
-  const accounts = await ethers.getSigners();
-
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
-
 module.exports = {
   solidity: {
     version: "0.8.4",
@@ -43,7 +35,7 @@ module.exports = {
     },
     mainnet: {
       url: "https://mainnet.infura.io/v3/f0039abafaab4ecf9b573383a5eba292",
-      accounts: []
+      accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY]
     }
   },
   gasReporter: {
