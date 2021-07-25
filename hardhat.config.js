@@ -28,13 +28,11 @@ module.exports = {
       }
     },
     ropsten: {
-      url: "https://ropsten.infura.io/v3/f0039abafaab4ecf9b573383a5eba292",
-      accounts: [
-        "502cd3847e2c034df8d97ce706d3cffc5592da35b701f6d02ad05b9aa446abd2"
-      ]
+      url: "https://ropsten.infura.io/v3/" + process.env.INFURA_PROJECT_ID,
+      accounts: [process.env.THORSTARTER_TESTING_PRIVATE_KEY]
     },
     mainnet: {
-      url: "https://mainnet.infura.io/v3/f0039abafaab4ecf9b573383a5eba292",
+      url: "https://mainnet.infura.io/v3/" + process.env.INFURA_PROJECT_ID,
       accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY]
     }
   },
@@ -45,6 +43,6 @@ module.exports = {
     outputFile: undefined
   },
   etherscan: {
-    apiKey: "3DCDTDG8SE69YYH6E8Q8AYM3VSTWAQ3H1H"
+    apiKey: process.env.ETHERSCAN_API_KEY
   }
 };
