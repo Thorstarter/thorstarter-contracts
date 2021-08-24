@@ -4,6 +4,7 @@
 - Faucet: https://etherscan.io/address/0x87CF821bc517b6e54EEC96c324ABae82E8285E7C
 - Staking: https://etherscan.io/address/0x93F5Dc8bC383BB5381a67A67516A163d1E56012a
 - SushiRewarder: https://etherscan.io/address/0xb373f716FdC84447B1C7e2e1C4333c4A7C558148
+- Voters: https://etherscan.io/address/0x2c246bE2419602C34CB2Ae5BdF53962d7b70C9a1
 
 ### Logs
 
