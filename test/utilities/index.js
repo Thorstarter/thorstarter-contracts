@@ -5,6 +5,8 @@ const { BigNumber } = ethers;
 const BASE_TEN = 10;
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
+const parseUnits = ethers.utils.parseUnits;
+
 function encodeParameters(types, values) {
   const abi = new ethers.utils.AbiCoder();
   return abi.encode(types, values);
@@ -46,15 +48,7 @@ async function prepare(thisObject, contracts) {
   thisObject.carolPrivateKey =
     "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
 
-  if ((await ethers.provider.getCode(ERC1820_REGISTRY_ADDRESS)).length <= 2) {
-    await thisObject.dev.sendTransaction({
-      to: ERC1820_DEPLOYER_ADDRESS,
-      value: ethers.utils.parseEther("0.08")
-    });
-    await ethers.provider.send("eth_sendRawTransaction", [
-      ERC1820_REGISTRY_DEPLOY_TX
-    ]);
-  }
+  await deployRegistry();
   for (let i in contracts) {
     let contract = contracts[i];
     thisObject[contract] = await ethers.getContractFactory(contract);
@@ -66,6 +60,36 @@ async function deploy(thisObject, contracts) {
     let contract = contracts[i];
     thisObject[contract[0]] = await contract[1].deploy(...(contract[2] || []));
     await thisObject[contract[0]].deployed();
+  }
+}
+
+async function deploySwap() {
+  this.WETH9Mock = await ethers.getContractFactory("WETH9Mock");
+  this.weth = await this.WETH9Mock.deploy();
+  await this.weth.deployed();
+
+  this.UniswapV2Factory = await ethers.getContractFactory("UniswapV2Factory");
+  this.swapFactory = await this.UniswapV2Factory.deploy(ZERO_ADDRESS);
+  await this.swapFactory.deployed();
+
+  this.UniswapV2Router02 = await ethers.getContractFactory("UniswapV2Router02");
+  this.swapRouter = await this.UniswapV2Router02.deploy(
+    this.swapFactory.address,
+    this.weth.address
+  );
+  await this.swapRouter.deployed();
+}
+
+async function deployRegistry() {
+  const signers = await ethers.getSigners();
+  if ((await ethers.provider.getCode(ERC1820_REGISTRY_ADDRESS)).length <= 2) {
+    await signers[3].sendTransaction({
+      to: ERC1820_DEPLOYER_ADDRESS,
+      value: ethers.utils.parseEther("0.08"),
+    });
+    await ethers.provider.send("eth_sendRawTransaction", [
+      ERC1820_REGISTRY_DEPLOY_TX,
+    ]);
   }
 }
 
@@ -137,6 +161,7 @@ const duration = {
 module.exports = {
   BASE_TEN,
   ADDRESS_ZERO,
+  parseUnits,
   EIP2470_FACTORY_ABI,
   ERC1820_DEPLOYER_ADDRESS,
   ERC1820_REGISTRY_ADDRESS,
@@ -144,6 +169,8 @@ module.exports = {
   encodeParameters,
   prepare,
   deploy,
+  deploySwap,
+  deployRegistry,
   expectError,
   getBigNumber,
   advanceBlock,
