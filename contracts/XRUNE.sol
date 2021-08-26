@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
 import "./ERC677.sol";
 import "./ERC777Permit.sol";
@@ -17,6 +17,7 @@ contract XRUNE is ERC777, ERC777Permit, ERC677, Ownable {
     event NewEra(uint256 time, uint256 emission);
 
     constructor(address owner) public ERC777("XRUNE Token", "XRUNE", new address[](0)) ERC777Permit("XRUNE") Ownable(owner) {
+        nextEra = block.timestamp;
         _mint(owner, MAX_SUPPLY / 2, "", "");
     }
 

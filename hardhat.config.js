@@ -10,39 +10,38 @@ if (process.env.GAS_REPORT === "true") {
 
 module.exports = {
   solidity: {
-    version: "0.8.4",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200
-      }
-    }
+    compilers: [
+      {
+        version: "0.8.7",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+      {
+        version: "0.6.12",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+        },
+      },
+    ],
   },
-  defaultNetwork: "hardhat",
   networks: {
-    hardhat: {
-      blockGasLimit: 10000000,
-      mining: {
-        auto: true,
-        interval: 0
-      }
-    },
     ropsten: {
       url: "https://ropsten.infura.io/v3/" + process.env.INFURA_PROJECT_ID,
-      accounts: [process.env.THORSTARTER_TESTING_PRIVATE_KEY]
+      accounts: [process.env.THORSTARTER_TESTING_PRIVATE_KEY],
     },
     mainnet: {
       url: "https://mainnet.infura.io/v3/" + process.env.INFURA_PROJECT_ID,
-      accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY]
-    }
-  },
-  gasReporter: {
-    enabled: process.env.GAS_REPORT === "true",
-    currency: "USD",
-    gasPrice: 50,
-    outputFile: undefined
+      accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY],
+    },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY
-  }
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
 };

@@ -47,7 +47,7 @@ describe("XRUNE", function() {
   });
 
   it("allows next era to be set by admin", async function() {
-    const nextEra = parseInt(Date.now() / 1000) + 30 * 86400;
+    const nextEra = (await currentTime()) + 60;
     await this.xrune.setNextEra(nextEra);
     expect(await this.xrune.nextEra()).to.equal(nextEra);
   });
@@ -73,6 +73,7 @@ describe("XRUNE", function() {
   it("dailyEmit works when era pending", async function() {
     await this.xrune.setReserve(this.bob.getAddress());
     await this.xrune.toggleEmitting();
+    await advanceTime(90000);
     await this.xrune.dailyEmit();
     const nextEra = await this.xrune.nextEra();
     const dailyEmit = await this.xrune.dailyEmission();

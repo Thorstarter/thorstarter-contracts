@@ -1,5 +1,6 @@
 const { expect, assert } = require("chai");
 const {
+  expectError,
   advanceBlockTo,
   advanceBlock,
   prepare,
@@ -46,17 +47,7 @@ describe("Staking", function() {
     });
 
     it("Should revert if invalid pool", async function() {
-      let err;
-      try {
-        await this.staking.set(0, 10);
-      } catch (e) {
-        err = e;
-      }
-
-      assert.equal(
-        err.toString(),
-        "Error: VM Exception while processing transaction: revert "
-      );
+      await expectError("revert", () => this.staking.set(0, 10));
     });
   });
 
@@ -105,16 +96,8 @@ describe("Staking", function() {
     });
 
     it("Updating invalid pools should fail", async function() {
-      let err;
-      try {
-        await this.staking.massUpdatePools([0, 10000, 100000]);
-      } catch (e) {
-        err = e;
-      }
-
-      assert.equal(
-        err.toString(),
-        "Error: VM Exception while processing transaction: revert "
+      await expectError("revert", () =>
+        this.staking.massUpdatePools([0, 10000, 100000])
       );
     });
   });
@@ -161,16 +144,8 @@ describe("Staking", function() {
     });
 
     it("Depositing into non-existent pool should fail", async function() {
-      let err;
-      try {
-        await this.staking.deposit(1001, getBigNumber(0), this.alice.address);
-      } catch (e) {
-        err = e;
-      }
-
-      assert.equal(
-        err.toString(),
-        "Error: VM Exception while processing transaction: revert "
+      await expectError("revert", () =>
+        this.staking.deposit(1001, getBigNumber(0), this.alice.address)
       );
     });
   });
