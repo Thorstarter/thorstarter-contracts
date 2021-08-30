@@ -85,10 +85,10 @@ async function deployRegistry() {
   if ((await ethers.provider.getCode(ERC1820_REGISTRY_ADDRESS)).length <= 2) {
     await signers[3].sendTransaction({
       to: ERC1820_DEPLOYER_ADDRESS,
-      value: ethers.utils.parseEther("0.08"),
+      value: ethers.utils.parseEther("0.08")
     });
     await ethers.provider.send("eth_sendRawTransaction", [
-      ERC1820_REGISTRY_DEPLOY_TX,
+      ERC1820_REGISTRY_DEPLOY_TX
     ]);
   }
 }
@@ -137,6 +137,10 @@ async function advanceTime(time) {
   await ethers.provider.send("evm_increaseTime", [time]);
 }
 
+async function advanceToTime(time) {
+  await ethers.provider.send("evm_setNextBlockTimestamp", [time]);
+}
+
 const duration = {
   seconds: function(val) {
     return BigNumber.from(val);
@@ -179,5 +183,6 @@ module.exports = {
   currentTime,
   advanceTimeAndBlock,
   advanceTime,
+  advanceToTime,
   duration
 };
