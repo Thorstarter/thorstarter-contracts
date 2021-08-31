@@ -17,11 +17,11 @@ async function main() {
     "0x2610F0bFC21EF389fe4D03CFB7De9ac1E6C99D6E", // offering token
     1630418400, // now + 3 * 60, // start time
     1630461600, // now + 4 * 60 * 60, // end time
-    parseUnits("2.50"), // start price
-    parseUnits("0.25"), // end price
+    parseUnits("2"), // start price
+    parseUnits("0.2"), // end price
     parseUnits("5000000"), // offering amount
     parseUnits("0"), // per user cap amount
-    signer.address, // owner
+    signer.address // owner
   ];
   const contract = await Contract.deploy(...args, {
     //gasLimit: 5000000,
@@ -33,7 +33,7 @@ async function main() {
   if (hre.network.name !== "hardhat") {
     await hre.run("verify:verify", {
       address: contract.address,
-      constructorArguments: args,
+      constructorArguments: args
     });
   }
   console.log("Contract deployed to:", contract.address);
@@ -41,7 +41,7 @@ async function main() {
 
 main()
   .then(() => process.exit(0))
-  .catch((error) => {
+  .catch(error => {
     console.error(error);
     process.exit(1);
   });
