@@ -10,12 +10,15 @@ contracts/addresses following their respective vesting curves.
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC1820Registry.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC1820Implementer.sol";
 
 interface IEmissionsPrivateDispenser {
     function deposit(uint amount) external;
 }
 
-contract EmissionsSplitter {
+contract EmissionsSplitter is IERC777Recipient, ERC1820Implementer {
     using SafeERC20 for IERC20;
 
     uint public constant ONE_YEAR = 31536000;
@@ -24,6 +27,7 @@ contract EmissionsSplitter {
     uint public constant TEAM_EMISSIONS_HALF1 = 66000000e18;
     uint public constant TEAM_EMISSIONS_HALF2 = 44000000e18;
     uint public constant ECOSYSTEM_EMISSIONS = 250000000e18;
+    bytes32 public constant ERC777_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient");
 
     IERC20 public token;
     uint public emissionsStart;
@@ -45,6 +49,8 @@ contract EmissionsSplitter {
         team = _team;
         investors = _investors;
         ecosystem = _ecosystem;
+        _registerInterfaceForAddress(ERC777_RECIPIENT_INTERFACE_HASH, address(this));
+        IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24).setInterfaceImplementer(address(0), ERC777_RECIPIENT_INTERFACE_HASH, address(this));
         require(dao != address(0), "!zero dao");
         require(team != address(0), "!zero team");
         require(investors != address(0), "!zero investors");
@@ -55,7 +61,7 @@ contract EmissionsSplitter {
         return token.balanceOf(address(this)) > 0;
     }
 
-    function run() public {
+    function run() external {
         uint initialAmount = token.balanceOf(address(this));
         uint amount = initialAmount;
         require(amount > 0, "no balance to split");
@@ -132,6 +138,9 @@ contract EmissionsSplitter {
         }
 
         emit Split(initialAmount, amount, sentToTeamNow, sentToInvestorsNow, ecosystemAmount);
+    }
+
+    function tokensReceived(address operator, address from, address to, uint amount, bytes calldata userData, bytes calldata operatorData) external override {
     }
 
     function _min(uint a, uint b) private pure returns (uint) {
