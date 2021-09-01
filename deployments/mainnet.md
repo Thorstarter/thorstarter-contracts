@@ -5,8 +5,10 @@
 - Staking: https://etherscan.io/address/0x93F5Dc8bC383BB5381a67A67516A163d1E56012a
 - SushiRewarder: https://etherscan.io/address/0xb373f716FdC84447B1C7e2e1C4333c4A7C558148
 - Voters: https://etherscan.io/address/0xEBCD3922A199cd1358277C6458439C13A93531eD
+- DAO: https://etherscan.io/address/0x5b1b8BdbcC534B17E9f8E03a3308172c7657F4a3
 - TokenPriceHelper: https://etherscan.io/address/0xe49Fad12333b27E632591CfD35285d01daD9f439
 - EmissionsPrivateDispenser: https://etherscan.io/address/0x2B9775942ecC36bF4DC449DdB828CF070b3CC71c
+- EmissionsSplitter: https://etherscan.io/address/0xf99b2a992d047e13761e0a601d2889ed5685f4d0
 
 ### Sales
 
