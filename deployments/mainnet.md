@@ -6,6 +6,7 @@
 - SushiRewarder: https://etherscan.io/address/0xb373f716FdC84447B1C7e2e1C4333c4A7C558148
 - Voters: https://etherscan.io/address/0xEBCD3922A199cd1358277C6458439C13A93531eD
 - TokenPriceHelper: https://etherscan.io/address/0xe49Fad12333b27E632591CfD35285d01daD9f439
+- EmissionsPrivateDispenser: https://etherscan.io/address/0x2B9775942ecC36bF4DC449DdB828CF070b3CC71c
 
 ### Sales
 

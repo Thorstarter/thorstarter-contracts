@@ -26,11 +26,14 @@ contract EmissionsPrivateDispenser is Ownable {
     constructor(address _token, address[] memory investors, uint[] memory percentages) {
         token = IERC20(_token);
         require(investors.length == percentages.length);
+        uint total = 0;
         for (uint i = 0; i < investors.length; i++) {
             require(investors[i] != address(0), "!zero");
             investorsPercentages[investors[i]] = percentages[i];
             emit ConfigureInvestor(investors[i], percentages[i]);
+            total += percentages[i];
         }
+        require(total == 1e12, "percentagees don't add up to 100%");
     }
 
     function updateInvestorAddress(address oldAddress, address newAddress) public onlyOwner {

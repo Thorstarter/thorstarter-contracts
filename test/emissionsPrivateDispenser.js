@@ -1,5 +1,10 @@
 const { expect } = require("chai");
-const { parseUnits, expectError, deployRegistry } = require("./utilities");
+const {
+  ADDRESS_ZERO,
+  parseUnits,
+  expectError,
+  deployRegistry
+} = require("./utilities");
 
 describe("EmissionsPrivateDispenser", function() {
   beforeEach(async function() {
@@ -16,8 +21,8 @@ describe("EmissionsPrivateDispenser", function() {
 
     this.epd = await this.EmissionsPrivateDispenser.deploy(
       this.token.address,
-      [this.signer.address],
-      [parseUnits("0.4", 12)]
+      [this.signer.address, "0x0000000000000000000000000000000000000001"],
+      [parseUnits("0.4", 12), parseUnits("0.6", 12)]
     );
     await this.epd.deployed();
   });
@@ -25,6 +30,14 @@ describe("EmissionsPrivateDispenser", function() {
   it("constructor", async function() {
     const percentage = await this.epd.investorsPercentages(this.signer.address);
     expect(percentage).to.equal(parseUnits("0.4", 12));
+
+    await expectError("don't add up to 100%", async () => {
+      await this.EmissionsPrivateDispenser.deploy(
+        this.token.address,
+        ["0x0000000000000000000000000000000000000001"],
+        [parseUnits("0.99", 12)]
+      );
+    });
   });
 
   it("updateInvestorAddress", async function() {
