@@ -69,7 +69,7 @@ async function deploySwap() {
   await this.weth.deployed();
 
   this.UniswapV2Factory = await ethers.getContractFactory("UniswapV2Factory");
-  this.swapFactory = await this.UniswapV2Factory.deploy(ZERO_ADDRESS);
+  this.swapFactory = await this.UniswapV2Factory.deploy(ADDRESS_ZERO);
   await this.swapFactory.deployed();
 
   this.UniswapV2Router02 = await ethers.getContractFactory("UniswapV2Router02");

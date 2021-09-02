@@ -19,8 +19,8 @@ describe("EmissionsSplitter", function() {
 
     this.emissionsPrivateDispenser = await this.EmissionsPrivateDispenser.deploy(
       this.token.address,
-      [],
-      []
+      [this.signer.address],
+      [parseUnits("1", 12)]
     );
     await this.emissionsPrivateDispenser.deployed();
 

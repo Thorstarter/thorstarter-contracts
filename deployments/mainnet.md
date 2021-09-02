@@ -9,7 +9,10 @@
 - TokenPriceHelper: https://etherscan.io/address/0xe49Fad12333b27E632591CfD35285d01daD9f439
 - EmissionsPrivateDispenser: https://etherscan.io/address/0x2B9775942ecC36bF4DC449DdB828CF070b3CC71c
 - EmissionsSplitter: https://etherscan.io/address/0xf99b2a992d047e13761e0a601d2889ed5685f4d0
+- VotersInvestmentDispenser: https://etherscan.io/address/0x45cd79fA4faD4a2DfC2294B0315d45e41D8e9601
+- LpTokenVestingKeeper: https://etherscan.io/address/0x5fB164A1f1F8cAF86D4bB362A1D24c007fAe92B5
 
 ### Sales
 
 - Skyrim Dutch Sale: https://etherscan.io/address/0x9Aa3f4295431e6640f1D2ef50944BAe6cC5123D8
+- Skyrim LpTokenVesting: https://etherscan.io/address/0x7bc47D1632A598A79031e6f65958Aa0f681a3BD3
