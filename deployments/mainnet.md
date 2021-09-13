@@ -16,3 +16,4 @@
 
 - Skyrim Dutch Sale: https://etherscan.io/address/0x9Aa3f4295431e6640f1D2ef50944BAe6cC5123D8
 - Skyrim LpTokenVesting: https://etherscan.io/address/0x7bc47D1632A598A79031e6f65958Aa0f681a3BD3
+- BNPL Batch Sale: https://etherscan.io/address/0x1a4d12Ab7033483bEEf93b9faCDB818c0f039271

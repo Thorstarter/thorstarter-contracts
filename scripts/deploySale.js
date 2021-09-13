@@ -2,26 +2,24 @@ const hre = require("hardhat");
 
 const parseUnits = ethers.utils.parseUnits;
 
-// const xruneContract = "0x0fe3ecd525d16fa09aa1ff177014de5304c835e2"; // ropsten
 const xruneContract = "0x69fa0fee221ad11012bab0fdb45d444d3d2ce71c"; // mainnet
-// const votersContract = "0x776E752E2fed4af405b4cf2C673D9d19A3346a69"; // ropsten
 const votersContract = "0xEBCD3922A199cd1358277C6458439C13A93531eD"; // mainnet
+//const xruneContract = "0x0fe3ecd525d16fa09aa1ff177014de5304c835e2"; // ropsten
+//const votersContract = "0x776E752E2fed4af405b4cf2C673D9d19A3346a69"; // ropsten
 const xxruneTestToken = "0x730ecbe7a8ac44c9250a4f44a433ac9fb073c491"; // ropsten
 
 async function main() {
   const signer = await ethers.getSigner();
-  const Contract = await hre.ethers.getContractFactory("SaleDutch");
+  const Contract = await hre.ethers.getContractFactory("SaleBatch");
   const now = (Date.now() / 1000) | 0;
   const args = [
     xruneContract, // payment token
-    "0x2610F0bFC21EF389fe4D03CFB7De9ac1E6C99D6E", // offering token
-    1630418400, // now + 3 * 60, // start time
-    1630461600, // now + 4 * 60 * 60, // end time
-    parseUnits("2"), // start price
-    parseUnits("0.2"), // end price
-    parseUnits("5000000"), // offering amount
-    parseUnits("0"), // per user cap amount
-    signer.address // owner
+    "0x84d821f7fbdd595c4c4a50842913e6b1e07d7a53", // offering token
+    1631628000, //now + 3 * 60, // start time
+    1631714400, //now + 8 * 60, // end time
+    parseUnits("5000000"), // offerring amount
+    parseUnits("1000000"), // raising amount
+    parseUnits("1000000") // per user cap amount
   ];
   const contract = await Contract.deploy(...args, {
     //gasLimit: 5000000,
