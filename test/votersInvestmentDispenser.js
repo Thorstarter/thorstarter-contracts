@@ -58,6 +58,21 @@ describe("VotersInvestmentDispenser", function() {
     expect(await this.vid.claimable(99, this.signer.address)).to.equal(0);
   });
 
+  it("claimableMultiple", async function() {
+    await this.voters.snapshot();
+    this.snapshotId2 = await this.voters.currentSnapshotId();
+    await this.token.approve(this.vid.address, parseUnits("1500"));
+    await this.vid.deposit(this.snapshotId, parseUnits("1000"));
+    await this.vid.deposit(this.snapshotId2, parseUnits("500"));
+
+    expect(
+      await this.vid.claimableMultiple(
+        [this.snapshotId, this.snapshotId2],
+        this.signer.address
+      )
+    ).to.deep.equal([parseUnits("200"), parseUnits("100")]);
+  });
+
   it("claim", async function() {
     await this.token.approve(this.vid.address, parseUnits("1000"));
     await this.vid.deposit(this.snapshotId, parseUnits("1000"));
@@ -85,5 +100,51 @@ describe("VotersInvestmentDispenser", function() {
     expect(
       await this.vid.claimedAmounts(this.snapshotId, this.signer.address)
     ).to.equal(parseUnits("240"));
+  });
+
+  it("claimMultipleTo", async function() {
+    await this.voters.snapshot();
+    this.snapshotId2 = await this.voters.currentSnapshotId();
+
+    await this.token.approve(this.vid.address, parseUnits("1500"));
+    await this.vid.deposit(this.snapshotId, parseUnits("1000"));
+    await this.vid.deposit(this.snapshotId2, parseUnits("500"));
+
+    let balanceBefore = await this.token.balanceOf(this.signer.address);
+    await this.vid.claimMultipleTo(
+      [this.snapshotId, this.snapshotId2],
+      this.signer.address
+    );
+    let balanceAfter = await this.token.balanceOf(this.signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(parseUnits("300"));
+  });
+
+  it("claimToFor", async function() {
+    await this.token.approve(this.vid.address, parseUnits("1000"));
+    await this.vid.deposit(this.snapshotId, parseUnits("1000"));
+
+    let balanceBefore = await this.token.balanceOf(this.signer.address);
+    await this.vid.claimToFor(
+      this.signers[1].address,
+      this.snapshotId,
+      this.signer.address
+    );
+    let balanceAfter = await this.token.balanceOf(this.signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(parseUnits("800"));
+
+    await expectError("is missing role", () =>
+      this.vid
+        .connect(this.signers[1])
+        .claimToFor(this.signer.address, this.snapshotId, this.signer.address)
+    );
+
+    await this.vid.grantRole(
+      await this.vid.ADMIN_ROLE(),
+      this.signers[1].address
+    );
+    await this.vid.grantRole(
+      await this.vid.CLAIMER_ROLE(),
+      this.signers[1].address
+    );
   });
 });

@@ -9,7 +9,7 @@
 - TokenPriceHelper: https://etherscan.io/address/0xe49Fad12333b27E632591CfD35285d01daD9f439
 - EmissionsPrivateDispenser: https://etherscan.io/address/0x2B9775942ecC36bF4DC449DdB828CF070b3CC71c
 - EmissionsSplitter: https://etherscan.io/address/0xf99b2a992d047e13761e0a601d2889ed5685f4d0
-- VotersInvestmentDispenser: https://etherscan.io/address/0x45cd79fA4faD4a2DfC2294B0315d45e41D8e9601
+- VotersInvestmentDispenser: https://etherscan.io/address/0xc7C525076B21F5be086D77A61E971a0369A77E8D
 - LpTokenVestingKeeper: https://etherscan.io/address/0x5fB164A1f1F8cAF86D4bB362A1D24c007fAe92B5
 
 ### Sales
