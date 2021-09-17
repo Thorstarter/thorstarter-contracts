@@ -100,7 +100,7 @@ const investors = [
     percent: "1666666666"
   },
   {
-    address: "0x52E7bdE89Fcbd1e1C656Db1C08DdE45D82447e25",
+    address: "0xF76dbc5d9A7465EcEc49700054bF27f88cf9ad05",
     percent: "1666666666"
   },
   {
