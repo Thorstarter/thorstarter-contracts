@@ -13,7 +13,10 @@ async function main() {
     sushiRouter, // sushi router
     0, // vesting cliff
     63072000, // vesting length (2 year)
-    ["0x69539C1c678dFd26E626f109149b7cEBDd5E4768", ""] // parties
+    [
+      "0x69539C1c678dFd26E626f109149b7cEBDd5E4768",
+      "0x481881E5bA69087316Fb5D47FC2ed8610bd29197"
+    ] // parties
   ];
   const contract = await Contract.deploy(...args, {
     //gasLimit: 5000000,
