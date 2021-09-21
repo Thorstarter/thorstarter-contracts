@@ -10,6 +10,7 @@ contracts/addresses following their respective vesting curves.
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC1820Registry.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC1820Implementer.sol";
@@ -18,7 +19,7 @@ interface IEmissionsPrivateDispenser {
     function deposit(uint amount) external;
 }
 
-contract EmissionsSplitter is IERC777Recipient, ERC1820Implementer {
+contract EmissionsSplitter is Ownable, IERC777Recipient, ERC1820Implementer {
     using SafeERC20 for IERC20;
 
     uint public constant ONE_YEAR = 31536000;
@@ -42,7 +43,7 @@ contract EmissionsSplitter is IERC777Recipient, ERC1820Implementer {
 
     event Split(uint amount, uint dao, uint team, uint investors, uint ecosystem);
 
-    constructor(address _token, uint _emissionsStart, address _dao, address _team, address _investors, address _ecosystem) {
+    constructor(address _token, uint _emissionsStart, address _dao, address _team, address _investors, address _ecosystem) Ownable() {
         token = IERC20(_token);
         emissionsStart = _emissionsStart;
         dao = _dao;
@@ -55,6 +56,29 @@ contract EmissionsSplitter is IERC777Recipient, ERC1820Implementer {
         require(team != address(0), "!zero team");
         require(investors != address(0), "!zero investors");
         require(ecosystem != address(0), "!zero ecosystem");
+        sentToTeam = 1910236015974000000000000;
+        sentToInvestors = 2604867294510000000000000;
+        sentToEcosystem = 1447148496750000000000000;
+    }
+
+    function setDao(address value) external onlyOwner {
+        require(dao != address(0), "!zero dao");
+        dao = value;
+    }
+
+    function setEcosystem(address value) external onlyOwner {
+        require(ecosystem != address(0), "!zero ecosystem");
+        ecosystem = value;
+    }
+
+    function setTeam(address value) external onlyOwner {
+        require(team != address(0), "!zero team");
+        team = value;
+    }
+
+    function setInvestors(address value) external onlyOwner {
+        require(investors != address(0), "!zero investors");
+        investors = value;
     }
     
     function shouldRun() public view returns (bool) {
