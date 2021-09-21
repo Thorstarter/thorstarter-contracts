@@ -12,6 +12,7 @@
 - EmissionsSplitter: https://etherscan.io/address/0x34a596ed1Bb9283280A859042a42Dd6d648FE018
 - VotersInvestmentDispenser: https://etherscan.io/address/0xc7C525076B21F5be086D77A61E971a0369A77E8D
 - LpTokenVestingKeeper: https://etherscan.io/address/0x5fB164A1f1F8cAF86D4bB362A1D24c007fAe92B5
+- VestingDispenser: https://etherscan.io/address/0x6A483903AaA40f2543EDb4DbbC071A6B30b1b70a
 
 ### Sales
 
