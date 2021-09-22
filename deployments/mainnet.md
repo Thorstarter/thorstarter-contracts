@@ -13,6 +13,7 @@
 - VotersInvestmentDispenser: https://etherscan.io/address/0xc7C525076B21F5be086D77A61E971a0369A77E8D
 - LpTokenVestingKeeper: https://etherscan.io/address/0x5fB164A1f1F8cAF86D4bB362A1D24c007fAe92B5
 - VestingDispenser: https://etherscan.io/address/0x6A483903AaA40f2543EDb4DbbC071A6B30b1b70a
+- VotersTcLpRequester: https://etherscan.io/address/0x3fe9995dAEAe2510C1984E8D211d5f4480b26727
 
 ### Sales
 
