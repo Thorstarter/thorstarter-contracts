@@ -177,6 +177,7 @@ module.exports = {
   deployRegistry,
   expectError,
   getBigNumber,
+  bn: getBigNumber,
   advanceBlock,
   advanceBlockTo,
   increase,
