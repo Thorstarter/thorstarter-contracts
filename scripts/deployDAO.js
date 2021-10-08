@@ -6,11 +6,11 @@ async function main() {
   const signer = await ethers.getSigner();
   const Contract = await hre.ethers.getContractFactory("DAO");
   const args = [
-    "0xEBCD3922A199cd1358277C6458439C13A93531eD", // voters
+    "0xa4B53C4a1Fd342610cf2CC0fe9a30F3120387cf3", // voters
     parseUnits("10000"), // min to propose
     parseUnits("0.1", 12), // min % quorum
-    5 * 86400, // min voting time
-    1 * 86400 // min execution delay
+    300, //5 * 86400, // min voting time
+    300 //1 * 86400 // min execution delay
   ];
   const contract = await Contract.deploy(...args);
   await contract.deployed();
