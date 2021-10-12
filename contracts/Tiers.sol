@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./interfaces/IERC677Receiver.sol";
 
-contract Tiers is AccessControl, ReentrancyGuard {
+contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -175,6 +176,14 @@ contract Tiers is AccessControl, ReentrancyGuard {
         user.amounts[token] += amount;
 
         emit Deposit(msg.sender, amount, to);
+    }
+
+    function onTokenTransfer(address user, uint amount, bytes calldata _data) public override {
+        require(msg.sender == address(rewardToken), "onTokenTransfer: not rewardToken");
+        (UserInfo storage user,,) = _userInfo(user);
+        totalAmounts[address(rewardToken)] += amount;
+        user.amounts[address(rewardToken)] += amount;
+        emit Deposit(user, amount, user);
     }
 
     function withdraw(address token, uint256 amount, address to) external nonReentrant {
