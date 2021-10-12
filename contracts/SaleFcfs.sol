@@ -8,6 +8,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IVoters.sol";
 import "./interfaces/IERC677Receiver.sol";
 
+interface IStaking {
+    function deposit(uint amount, address to) external;
+}
+
 interface ITiers {
     function userInfos(address user) external view returns (uint256, uint256);
     function userInfoTotal(address user) external view returns (uint256, uint256);
@@ -51,6 +55,8 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     mapping(address => UserInfo) public userInfo;
     // Participants list
     address[] public addressList;
+    // SingleStaking: Contract
+    IStaking public staking;
     // Tiers: Contract
     ITiers public tiers;
     // Tiers: Size of guaranteed allocation
@@ -70,7 +76,8 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         uint _endTime,
         uint _offeringAmount,
         uint _raisingAmount,
-        uint _perUserCap
+        uint _perUserCap,
+        address _staking
     ) Ownable() {
         paymentToken = IERC20(_paymentToken);
         offeringToken = IERC20(_offeringToken);
@@ -79,6 +86,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         offeringAmount = _offeringAmount;
         raisingAmount = _raisingAmount;
         perUserCap = _perUserCap;
+        staking = IStaking(_staking);
         require(_paymentToken != address(0) && _offeringToken != address(0), "!zero");
         require(_paymentToken != _offeringToken, "payment != offering");
         require(_offeringAmount > 0, "offering > 0");
@@ -188,7 +196,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         _deposit(user, amount);
     }
 
-    function harvest() public nonReentrant {
+    function harvest(bool stake) public nonReentrant {
         require(!paused, "paused");
         require(block.timestamp > endTime, "sale not ended");
         require(finalized, "not finalized");
@@ -196,7 +204,15 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         require(!userInfo[msg.sender].claimed, "nothing to harvest");
         userInfo[msg.sender].claimed = true;
         uint amount = getOfferingAmount(msg.sender);
-        offeringToken.safeTransfer(address(msg.sender), amount);
+
+        if (stake) {
+            require(address(staking) != address(0), "no staking available");
+            offeringToken.approve(address(staking), amount);
+            staking.deposit(amount, msg.sender);
+        } else {
+            offeringToken.safeTransfer(address(msg.sender), amount);
+        }
+
         emit Harvest(msg.sender, amount);
     }
 
