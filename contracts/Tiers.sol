@@ -13,6 +13,7 @@ contract Tiers is AccessControl, ReentrancyGuard {
 
     struct UserInfo {
         uint256 lastFeeGrowth;
+        uint256 lastAction;
         mapping(address => uint256) amounts;
     }
 
@@ -153,6 +154,7 @@ contract Tiers is AccessControl, ReentrancyGuard {
             userInfo.amounts[address(rewardToken)] += fees;
         }
         userInfo.lastFeeGrowth = lastFeeGrowth;
+        userInfo.lastAction = block.timestamp;
         return (userInfo, tokensOnlyTotal, total);
     }
 
