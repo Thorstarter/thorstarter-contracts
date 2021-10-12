@@ -180,9 +180,9 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
 
     function onTokenTransfer(address user, uint amount, bytes calldata _data) public override {
         require(msg.sender == address(rewardToken), "onTokenTransfer: not rewardToken");
-        (UserInfo storage user,,) = _userInfo(user);
+        (UserInfo storage userInfo,,) = _userInfo(user);
         totalAmounts[address(rewardToken)] += amount;
-        user.amounts[address(rewardToken)] += amount;
+        userInfo.amounts[address(rewardToken)] += amount;
         emit Deposit(user, amount, user);
     }
 
