@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Tiers is AccessControl {
+contract Tiers is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -24,7 +25,7 @@ contract Tiers is AccessControl {
     mapping(address => uint256) public totalAmounts;
     uint256 public lastFeeGrowth;
     mapping(address => UserInfo) public userInfos;
-    address[] users;
+    address[] public users;
     mapping(address => uint256) public tokenRates;
     EnumerableSet.AddressSet private tokens;
     mapping(address => uint256) public nftRates;
@@ -161,7 +162,7 @@ contract Tiers is AccessControl {
         emit Donate(msg.sender, amount);
     }
 
-    function deposit(address token, uint256 amount, address to) external {
+    function deposit(address token, uint256 amount, address to) external nonReentrant {
         require(!paused, "paused");
         require(tokenRates[token] > 0, "not a supported token");
         (UserInfo storage user,,) = _userInfo(to);
@@ -174,7 +175,7 @@ contract Tiers is AccessControl {
         emit Deposit(msg.sender, amount, to);
     }
 
-    function withdraw(address token, uint256 amount, address to) external {
+    function withdraw(address token, uint256 amount, address to) external nonReentrant {
         require(!paused, "paused");
         (UserInfo storage user,,) = _userInfo(msg.sender);
 
@@ -186,8 +187,8 @@ contract Tiers is AccessControl {
         emit Withdraw(msg.sender, amount, to);
     }
 
-    function migrateToken(address token, uint256 amount) public onlyRole(ADMIN_ROLE) {
-        IERC20(token).safeTransfer(msg.sender, amount);
+    function migrateRewards(uint256 amount) public onlyRole(ADMIN_ROLE) {
+        rewardToken.safeTransfer(msg.sender, amount);
     }
 
     function _transferFrom(IERC20 token, address from, uint256 amount) private {

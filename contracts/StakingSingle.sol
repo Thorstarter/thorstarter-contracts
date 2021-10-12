@@ -7,8 +7,9 @@ can only come from a whitelisted contract, used as a post IDO gated farm */
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract StakingSingle is Ownable {
+contract StakingSingle is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     struct UserInfo {
@@ -65,7 +66,7 @@ contract StakingSingle is Ownable {
         emit Update(lastRewardBlock, totalAmount, accRewardPerShare);
     }
 
-    function deposit(uint256 amount, address to) public {
+    function deposit(uint256 amount, address to) public nonReentrant {
         require(depositor == msg.sender, "not depositor");
         update();
         UserInfo storage user = userInfo[to];
@@ -79,7 +80,7 @@ contract StakingSingle is Ownable {
         emit Deposit(msg.sender, amount, to);
     }
 
-    function withdraw(uint256 amount, address to) public {
+    function withdraw(uint256 amount, address to) public nonReentrant {
         update();
         UserInfo storage user = userInfo[msg.sender];
 

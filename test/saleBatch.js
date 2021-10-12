@@ -4,14 +4,14 @@ const {
   parseUnits,
   getBlock,
   advanceToBlock,
-  expectError,
-} = require("./utils");
+  expectError
+} = require("./utilities");
 
-describe("SaleBatch", function () {
-  beforeEach(async function () {
+describe("SaleBatch", function() {
+  beforeEach(async function() {
     this.signers = await ethers.getSigners();
     this.signer = this.signers[0];
-    this.Sale = await ethers.getContractFactory("Sale");
+    this.Sale = await ethers.getContractFactory("SaleBatch");
     this.MockToken = await ethers.getContractFactory("MockToken");
 
     this.paymentToken = await this.MockToken.deploy();
@@ -29,7 +29,7 @@ describe("SaleBatch", function () {
     );
     await this.voters.deployed();
 
-    this.deploySale = async function (
+    this.deploySale = async function(
       blockGap = 10,
       perUserCap = "10",
       owner,
@@ -54,13 +54,13 @@ describe("SaleBatch", function () {
     await this.deploySale();
   });
 
-  it("setOfferingAmount", async function () {
+  it("setOfferingAmount", async function() {
     expect(await this.sale.offeringAmount()).to.equal(parseUnits("100"));
     await this.sale.setOfferingAmount(parseUnits("101"));
     expect(await this.sale.offeringAmount()).to.equal(parseUnits("101"));
   });
 
-  it("setStartBlock", async function () {
+  it("setStartBlock", async function() {
     await expectError("start > now", async () => {
       await this.sale.setStartBlock(0);
     });
@@ -74,7 +74,7 @@ describe("SaleBatch", function () {
     expect(await this.sale.startBlock()).to.equal(newStart);
   });
 
-  it("deposit", async function () {
+  it("deposit", async function() {
     await this.deploySale(25);
 
     await expectError("sale not active", async () => {
@@ -128,7 +128,7 @@ describe("SaleBatch", function () {
     await this.sale.togglePaused();
   });
 
-  it("harvestTokens", async function () {
+  it("harvestTokens", async function() {
     await this.deploySale(10, "1500");
     await this.paymentToken.approve(this.sale.address, parseUnits("1500"));
     await advanceToBlock(this.startBlock + 10);
@@ -149,7 +149,7 @@ describe("SaleBatch", function () {
     });
   });
 
-  it("harvestTokens errors", async function () {
+  it("harvestTokens errors", async function() {
     await expectError("not harvest time", async () => {
       await this.sale.harvestTokens();
     });
@@ -161,7 +161,7 @@ describe("SaleBatch", function () {
     });
   });
 
-  it("harvestRefund", async function () {
+  it("harvestRefund", async function() {
     const signer2 = this.signers[1];
     await this.deploySale(10, "1500");
     await this.paymentToken.approve(this.sale.address, parseUnits("1500"));
@@ -199,7 +199,7 @@ describe("SaleBatch", function () {
     expect(balanceAfter.sub(balanceBefore)).to.equal(parseUnits("25"));
   });
 
-  it("finalWithdraw", async function () {
+  it("finalWithdraw", async function() {
     await this.paymentToken.approve(this.sale.address, parseUnits("10"));
     await advanceToBlock(this.startBlock + 10);
     await this.sale.deposit(parseUnits("10"));
