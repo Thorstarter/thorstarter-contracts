@@ -95,7 +95,7 @@ async function deployRegistry() {
 
 // Defaults to e18 using amount * 10^18
 function getBigNumber(amount, decimals = 18) {
-  return ethers.utils.parseEther(String(amount));
+  return ethers.utils.parseUnits(String(amount), decimals);
 }
 
 async function expectError(message, fn) {

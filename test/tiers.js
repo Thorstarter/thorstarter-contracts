@@ -1,0 +1,160 @@
+const { expect, assert } = require("chai");
+const {
+  ADDRESS_ZERO,
+  bn,
+  deployRegistry,
+  expectError
+} = require("./utilities");
+
+describe("Tiers", function() {
+  beforeEach(async function() {
+    await deployRegistry();
+    this.signers = await ethers.getSigners();
+    this.signer = this.signers[0];
+
+    this.MockToken = await ethers.getContractFactory("MockToken");
+    this.token = await this.MockToken.deploy();
+    await this.token.deployed();
+
+    this.Voters = await ethers.getContractFactory("Voters");
+    this.voters = await this.Voters.deploy(
+      this.signer.address,
+      this.token.address,
+      this.token.address
+    );
+    await this.voters.deployed();
+
+    this.Tiers = await ethers.getContractFactory("Tiers");
+    this.tiers = await this.Tiers.deploy(
+      this.signer.address,
+      this.token.address,
+      this.voters.address
+    );
+    await this.voters.deployed();
+    await this.tiers.updateToken([this.token.address], [bn(2, 8)]);
+  });
+
+  it("deposit", async function() {
+    await this.token.approve(this.tiers.address, bn(10));
+    const balanceBefore = await this.token.balanceOf(this.signer.address);
+    await expect(
+      this.tiers.deposit(this.token.address, bn(10), this.signer.address)
+    )
+      .to.emit(this.tiers, "Deposit")
+      .withArgs(this.signer.address, bn(10), this.signer.address);
+    const balanceAfter = await this.token.balanceOf(this.signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn(-10));
+    expect((await this.tiers.userInfoTotal(this.signer.address))[0]).to.equal(
+      bn(20)
+    );
+    expect(await this.tiers.totalAmount()).to.equal(bn(20));
+
+    await expectError("not a supported token", () =>
+      this.tiers.deposit(ADDRESS_ZERO, bn(1), this.signer.address)
+    );
+
+    await this.tiers.togglePaused();
+    await expectError("paused", () =>
+      this.tiers.deposit(this.token.address, bn(1), this.signer.address)
+    );
+  });
+
+  it("withdraw", async function() {
+    await this.token.approve(this.tiers.address, bn(10));
+    await this.tiers.deposit(this.token.address, bn(10), this.signer.address);
+    const balanceBefore = await this.token.balanceOf(this.signer.address);
+    await expect(
+      this.tiers.withdraw(this.token.address, bn(8), this.signer.address)
+    )
+      .to.emit(this.tiers, "Withdraw")
+      .withArgs(this.signer.address, bn(8), this.signer.address);
+    const balanceAfter = await this.token.balanceOf(this.signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn(8));
+    expect((await this.tiers.userInfoTotal(this.signer.address))[0]).to.equal(
+      bn(4)
+    );
+  });
+
+  it("donate", async function() {
+    await this.token.approve(this.tiers.address, bn(21));
+    await this.tiers.deposit(this.token.address, bn(15), this.signer.address);
+    await this.tiers.deposit(
+      this.token.address,
+      bn(5),
+      this.signers[1].address
+    );
+    await this.token.approve(this.voters.address, bn(10));
+    await this.voters.lock(bn(10));
+    await expect(this.tiers.donate(bn(1)))
+      .to.emit(this.tiers, "Donate")
+      .withArgs(this.signer.address, bn(1));
+    expect(
+      (await this.tiers.userInfoAmounts(this.signer.address))[4][0]
+    ).to.equal(bn(15.75));
+    await this.tiers.withdraw(
+      this.token.address,
+      bn(15.75),
+      this.signer.address
+    );
+    expect((await this.tiers.userInfoTotal(this.signer.address))[0]).to.equal(
+      bn(0)
+    );
+  });
+
+  it("updateNft", async function() {
+    await this.tiers.updateNft(this.token.address, bn(3000));
+    await this.token.approve(this.tiers.address, bn(10));
+    await this.tiers.deposit(this.token.address, bn(10), this.signer.address);
+
+    await this.tiers.updateVotersTokenRate(bn(1, 8));
+    await this.token.approve(this.voters.address, bn(100));
+    await this.voters.lock(bn(100));
+
+    expect((await this.tiers.userInfoTotal(this.signer.address))[1]).to.equal(
+      bn(3120)
+    );
+  });
+
+  it("userInfoAmounts", async function() {
+    await this.tiers.updateNft(this.token.address, bn(3000));
+    await this.token.approve(this.tiers.address, bn(10));
+    await this.tiers.deposit(this.token.address, bn(10), this.signer.address);
+
+    await this.tiers.updateVotersTokenRate(bn(1, 8));
+    await this.token.approve(this.voters.address, bn(100));
+    await this.voters.lock(bn(100));
+
+    expect(
+      await this.tiers.userInfoAmounts(this.signer.address)
+    ).to.deep.equal([
+      bn(20),
+      bn(3120),
+      [this.token.address, this.voters.address, this.token.address],
+      [bn(2, 8), bn(1, 8), bn(3000)],
+      [bn(10), bn(100), await this.token.balanceOf(this.signer.address)]
+    ]);
+  });
+
+  it("usersList", async function() {
+    await this.token.approve(this.tiers.address, bn(2));
+    await this.tiers.deposit(
+      this.token.address,
+      bn(1),
+      this.signers[0].address
+    );
+    await this.tiers.deposit(
+      this.token.address,
+      bn(1),
+      this.signers[1].address
+    );
+    expect(await this.tiers.usersList(0, 3)).to.deep.equal([
+      this.signers[0].address,
+      this.signers[1].address,
+      ADDRESS_ZERO
+    ]);
+    expect(await this.tiers.usersList(1, 2)).to.deep.equal([
+      ADDRESS_ZERO,
+      ADDRESS_ZERO
+    ]);
+  });
+});
