@@ -1,9 +1,11 @@
-const { expect, assert } = require("chai");
+const { expect } = require("chai");
 const {
   ADDRESS_ZERO,
+  ADDRESS_DEAD,
   bn,
   deployRegistry,
-  expectError
+  expectError,
+  advanceTime,
 } = require("./utilities");
 
 describe("Tiers", function() {
@@ -15,6 +17,8 @@ describe("Tiers", function() {
     this.MockToken = await ethers.getContractFactory("MockToken");
     this.token = await this.MockToken.deploy();
     await this.token.deployed();
+    this.token2 = await this.MockToken.deploy();
+    await this.token2.deployed();
 
     this.Voters = await ethers.getContractFactory("Voters");
     this.voters = await this.Voters.deploy(
@@ -27,11 +31,12 @@ describe("Tiers", function() {
     this.Tiers = await ethers.getContractFactory("Tiers");
     this.tiers = await this.Tiers.deploy(
       this.signer.address,
+      ADDRESS_DEAD,
       this.token.address,
       this.voters.address
     );
     await this.voters.deployed();
-    await this.tiers.updateToken([this.token.address], [bn(2, 8)]);
+    await this.tiers.updateToken([this.token.address, this.token2.address], [bn(2, 8), bn(1, 7)]);
   });
 
   it("deposit", async function() {
@@ -62,6 +67,12 @@ describe("Tiers", function() {
   it("withdraw", async function() {
     await this.token.approve(this.tiers.address, bn(10));
     await this.tiers.deposit(this.token.address, bn(10), this.signer.address);
+
+    await expectError("withdraw before 7 days", () =>
+      this.tiers.withdraw(this.token.address, bn(8), this.signer.address)
+    );
+    await advanceTime(8 * 24 * 60 * 60);
+
     const balanceBefore = await this.token.balanceOf(this.signer.address);
     await expect(
       this.tiers.withdraw(this.token.address, bn(8), this.signer.address)
@@ -73,6 +84,31 @@ describe("Tiers", function() {
     expect((await this.tiers.userInfoTotal(this.signer.address))[0]).to.equal(
       bn(4)
     );
+  });
+
+  it("withdrawNow", async function() {
+    await this.token.approve(this.tiers.address, bn(10));
+    await this.tiers.deposit(this.token.address, bn(10), this.signer.address);
+    expect(await this.tiers.lastFeeGrowth()).to.equal('1');
+    const balanceBefore = await this.token.balanceOf(this.signer.address);
+    await expect(
+      this.tiers.withdrawNow(this.token.address, bn(8), this.signer.address)
+    )
+      .to.emit(this.tiers, "WithdrawNow")
+      .withArgs(this.signer.address, bn(8), this.signer.address);
+    const balanceAfter = await this.token.balanceOf(this.signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn(4));
+    expect(await this.tiers.lastFeeGrowth()).to.equal('100000001');
+    expect((await this.tiers.userInfoTotal(this.signer.address))[0]).to.equal(
+      bn(4)
+    );
+
+    // Use token2 to test donations to dao
+    await this.token2.approve(this.tiers.address, bn(1));
+    await this.tiers.deposit(this.token2.address, bn(1), this.signer.address);
+    await this.tiers.withdrawNow(this.token2.address, bn(1), this.signer.address);
+    expect(await this.tiers.lastFeeGrowth()).to.equal('100000001');
+    expect(await this.token2.balanceOf(ADDRESS_DEAD)).to.equal(bn('0.5'));
   });
 
   it("donate", async function() {
@@ -91,6 +127,7 @@ describe("Tiers", function() {
     expect(
       (await this.tiers.userInfoAmounts(this.signer.address))[4][0]
     ).to.equal(bn(15.75));
+    await advanceTime(8 * 24 * 60 * 60);
     await this.tiers.withdraw(
       this.token.address,
       bn(15.75),
@@ -129,9 +166,9 @@ describe("Tiers", function() {
     ).to.deep.equal([
       bn(20),
       bn(3120),
-      [this.token.address, this.voters.address, this.token.address],
-      [bn(2, 8), bn(1, 8), bn(3000)],
-      [bn(10), bn(100), await this.token.balanceOf(this.signer.address)]
+      [this.token.address, this.token2.address, this.voters.address, this.token.address],
+      [bn(2, 8), bn(1, 7), bn(1, 8), bn(3000)],
+      [bn(10), bn(0), bn(100), await this.token.balanceOf(this.signer.address)],
     ]);
   });
 
@@ -150,11 +187,11 @@ describe("Tiers", function() {
     expect(await this.tiers.usersList(0, 3)).to.deep.equal([
       this.signers[0].address,
       this.signers[1].address,
-      ADDRESS_ZERO
+      ADDRESS_ZERO,
     ]);
     expect(await this.tiers.usersList(1, 2)).to.deep.equal([
       ADDRESS_ZERO,
-      ADDRESS_ZERO
+      ADDRESS_ZERO,
     ]);
   });
 });

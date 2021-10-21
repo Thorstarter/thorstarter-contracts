@@ -14,7 +14,8 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
 
     struct UserInfo {
         uint256 lastFeeGrowth;
-        uint256 lastAction;
+        uint256 lastDeposit;
+        uint256 lastWithdraw;
         mapping(address => uint256) amounts;
     }
 
@@ -22,6 +23,7 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
     bytes32 public constant CONFIG_ROLE = keccak256("CONFIG");
     bool public paused;
+    address public dao;
     IERC20 public rewardToken;
     IERC20 public votersToken;
     mapping(address => uint256) public totalAmounts;
@@ -36,12 +38,14 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
     event Donate(address indexed user, uint256 amount);
     event Deposit(address indexed user, uint256 amount, address indexed to);
     event Withdraw(address indexed user, uint256 amount, address indexed to);
+    event WithdrawNow(address indexed user, uint256 amount, address indexed to);
 
-    constructor(address _owner, address _rewardToken, address _votersToken) public {
+    constructor(address _owner, address _dao, address _rewardToken, address _votersToken) public {
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setRoleAdmin(CONFIG_ROLE, ADMIN_ROLE);
         _setupRole(ADMIN_ROLE, _owner);
         _setupRole(CONFIG_ROLE, _owner);
+        dao = _dao;
         rewardToken = IERC20(_rewardToken);
         votersToken = IERC20(_votersToken);
         lastFeeGrowth = 1;
@@ -155,7 +159,6 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
             userInfo.amounts[address(rewardToken)] += fees;
         }
         userInfo.lastFeeGrowth = lastFeeGrowth;
-        userInfo.lastAction = block.timestamp;
         return (userInfo, tokensOnlyTotal, total);
     }
 
@@ -174,6 +177,7 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
 
         totalAmounts[token] += amount;
         user.amounts[token] += amount;
+        user.lastDeposit = block.timestamp;
 
         emit Deposit(msg.sender, amount, to);
     }
@@ -187,15 +191,39 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
     }
 
     function withdraw(address token, uint256 amount, address to) external nonReentrant {
-        require(!paused, "paused");
         (UserInfo storage user,,) = _userInfo(msg.sender);
+        require(!paused, "paused");
+        require(block.timestamp > user.lastDeposit + 7 days, "can't withdraw before 7 days after last deposit");
 
         totalAmounts[token] -= amount;
         user.amounts[token] -= amount;
+        user.lastWithdraw = block.timestamp;
 
         IERC20(token).safeTransfer(to, amount);
 
         emit Withdraw(msg.sender, amount, to);
+    }
+
+    function withdrawNow(address token, uint256 amount, address to) external nonReentrant {
+        (UserInfo storage user,,) = _userInfo(msg.sender);
+        require(!paused, "paused");
+
+        uint256 half = amount / 2;
+        totalAmounts[token] -= amount;
+        user.amounts[token] -= amount;
+        user.lastWithdraw = block.timestamp;
+
+        // If token is XRUNE, donate, else send to DAO
+        if (token == address(rewardToken)) {
+            lastFeeGrowth += (half * PRECISION) / totalAmount();
+            emit Donate(msg.sender, half);
+        } else {
+            IERC20(token).safeTransfer(dao, half);
+        }
+
+        IERC20(token).safeTransfer(to, amount - half);
+
+        emit WithdrawNow(msg.sender, amount, to);
     }
 
     function migrateRewards(uint256 amount) public onlyRole(ADMIN_ROLE) {

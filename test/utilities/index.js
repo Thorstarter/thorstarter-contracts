@@ -4,6 +4,7 @@ const { BigNumber } = ethers;
 
 const BASE_TEN = 10;
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+const ADDRESS_DEAD = "0x000000000000000000000000000000000000dead";
 
 const parseUnits = ethers.utils.parseUnits;
 
@@ -165,6 +166,7 @@ const duration = {
 module.exports = {
   BASE_TEN,
   ADDRESS_ZERO,
+  ADDRESS_DEAD,
   parseUnits,
   EIP2470_FACTORY_ABI,
   ERC1820_DEPLOYER_ADDRESS,
