@@ -13,7 +13,7 @@ interface IStaking {
 }
 
 interface ITiers {
-    function userInfos(address user) external view returns (uint256, uint256);
+    function userInfos(address user) external view returns (uint256, uint256, uint256);
     function userInfoTotal(address user) external view returns (uint256, uint256);
 }
 
@@ -142,9 +142,9 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     function getUserAllocation(address user) public view returns (uint) {
         uint allocation = 0;
 
-        // Allocation is zero if user just joined/changed tiers
-        (, uint lastAction) = tiers.userInfos(user);
-        if (lastAction >= startTime) {
+        // Allocation is zero if user just joined / changed tiers
+        (, uint lastDeposit,) = tiers.userInfos(user);
+        if (lastDeposit >= startTime) {
           return allocation;
         }
 
