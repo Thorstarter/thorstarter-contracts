@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const { upgrades } = require("hardhat");
 const {
   ADDRESS_ZERO,
   ADDRESS_DEAD,
@@ -28,13 +29,13 @@ describe("Tiers", function() {
     );
     await this.voters.deployed();
 
-    this.Tiers = await ethers.getContractFactory("Tiers");
-    this.tiers = await this.Tiers.deploy(
+    this.Tiers = await ethers.getContractFactory("TiersV1");
+    this.tiers = await upgrades.deployProxy(this.Tiers, [
       this.signer.address,
       ADDRESS_DEAD,
       this.token.address,
       this.voters.address
-    );
+    ]);
     await this.voters.deployed();
     await this.tiers.updateToken([this.token.address, this.token2.address], [bn(2, 8), bn(1, 7)]);
   });

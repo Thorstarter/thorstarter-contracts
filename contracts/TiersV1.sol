@@ -1,16 +1,17 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interfaces/IERC677Receiver.sol";
 
-contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
-    using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
+contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, AccessControlUpgradeable {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     struct UserInfo {
         uint256 lastFeeGrowth;
@@ -24,30 +25,35 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
     bytes32 public constant CONFIG_ROLE = keccak256("CONFIG");
     bool public paused;
     address public dao;
-    IERC20 public rewardToken;
-    IERC20 public votersToken;
+    IERC20Upgradeable public rewardToken;
+    IERC20Upgradeable public votersToken;
     mapping(address => uint256) public totalAmounts;
     uint256 public lastFeeGrowth;
     mapping(address => UserInfo) public userInfos;
     address[] public users;
     mapping(address => uint256) public tokenRates;
-    EnumerableSet.AddressSet private tokens;
+    EnumerableSetUpgradeable.AddressSet private tokens;
     mapping(address => uint256) public nftRates;
-    EnumerableSet.AddressSet private nfts;
+    EnumerableSetUpgradeable.AddressSet private nfts;
+    uint256[50] private __gap;
 
     event Donate(address indexed user, uint256 amount);
     event Deposit(address indexed user, uint256 amount, address indexed to);
     event Withdraw(address indexed user, uint256 amount, address indexed to);
     event WithdrawNow(address indexed user, uint256 amount, address indexed to);
 
-    constructor(address _owner, address _dao, address _rewardToken, address _votersToken) public {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
+
+    function initialize(address _owner, address _dao, address _rewardToken, address _votersToken) public initializer {
+        __ReentrancyGuard_init();
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setRoleAdmin(CONFIG_ROLE, ADMIN_ROLE);
         _setupRole(ADMIN_ROLE, _owner);
         _setupRole(CONFIG_ROLE, _owner);
         dao = _dao;
-        rewardToken = IERC20(_rewardToken);
-        votersToken = IERC20(_votersToken);
+        rewardToken = IERC20Upgradeable(_rewardToken);
+        votersToken = IERC20Upgradeable(_votersToken);
         lastFeeGrowth = 1;
     }
 
@@ -69,11 +75,16 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
 
     function updateVotersToken(address _token) external onlyRole(CONFIG_ROLE) {
         require(_token != address(0), "token is zero");
-        votersToken = IERC20(_token);
+        votersToken = IERC20Upgradeable(_token);
     }
 
     function updateVotersTokenRate(uint _rate) external onlyRole(CONFIG_ROLE) {
         tokenRates[address(votersToken)] = _rate;
+    }
+
+    function updateDao(address _dao) external onlyRole(CONFIG_ROLE) {
+        require(_dao != address(0), "address is zero");
+        dao = _dao;
     }
 
     function togglePaused() external onlyRole(CONFIG_ROLE) {
@@ -125,7 +136,7 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
             address token = nfts.at(i);
             addresses[tmp + i] = token;
             rates[tmp + i] = nftRates[token];
-            amounts[tmp + i] = IERC20(token).balanceOf(user);
+            amounts[tmp + i] = IERC20Upgradeable(token).balanceOf(user);
         }
 
         return (tokensOnlyTotal, total, addresses, rates, amounts);
@@ -141,7 +152,7 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
         total += votersToken.balanceOf(user) * tokenRates[address(votersToken)] / PRECISION;
         for (uint256 i = 0; i < nfts.length(); i++) {
             address token = nfts.at(i);
-            if (IERC20(token).balanceOf(user) > 0) {
+            if (IERC20Upgradeable(token).balanceOf(user) > 0) {
                 total += nftRates[token];
             }
         }
@@ -173,7 +184,7 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
         require(tokenRates[token] > 0, "not a supported token");
         (UserInfo storage user,,) = _userInfo(to);
 
-        _transferFrom(IERC20(token), msg.sender, amount);
+        _transferFrom(IERC20Upgradeable(token), msg.sender, amount);
 
         totalAmounts[token] += amount;
         user.amounts[token] += amount;
@@ -199,7 +210,7 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
         user.amounts[token] -= amount;
         user.lastWithdraw = block.timestamp;
 
-        IERC20(token).safeTransfer(to, amount);
+        IERC20Upgradeable(token).safeTransfer(to, amount);
 
         emit Withdraw(msg.sender, amount, to);
     }
@@ -218,10 +229,10 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
             lastFeeGrowth += (half * PRECISION) / totalAmount();
             emit Donate(msg.sender, half);
         } else {
-            IERC20(token).safeTransfer(dao, half);
+            IERC20Upgradeable(token).safeTransfer(dao, half);
         }
 
-        IERC20(token).safeTransfer(to, amount - half);
+        IERC20Upgradeable(token).safeTransfer(to, amount - half);
 
         emit WithdrawNow(msg.sender, amount, to);
     }
@@ -230,7 +241,7 @@ contract Tiers is AccessControl, ReentrancyGuard, IERC677Receiver {
         rewardToken.safeTransfer(msg.sender, amount);
     }
 
-    function _transferFrom(IERC20 token, address from, uint256 amount) private {
+    function _transferFrom(IERC20Upgradeable token, address from, uint256 amount) private {
         uint256 balanceBefore = token.balanceOf(address(this));
         token.safeTransferFrom(from, address(this), amount);
         uint256 balanceAfter = token.balanceOf(address(this));
