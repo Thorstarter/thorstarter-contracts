@@ -108,6 +108,11 @@ contract SaleBatch is IERC677Receiver, Ownable, ReentrancyGuard {
       raisingAmount = amount;
     }
 
+    function setPerUserCap(uint cap) public onlyOwner {
+      require(block.timestamp < startTime && totalAmount == 0, "sale started");
+      perUserCap = cap;
+    }
+
     function togglePaused() public onlyOwner {
         paused = !paused;
     }

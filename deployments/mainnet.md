@@ -21,3 +21,4 @@
 - Skyrim LpTokenVesting: https://etherscan.io/address/0x7bc47D1632A598A79031e6f65958Aa0f681a3BD3
 - BNPL Batch Sale: https://etherscan.io/address/0x1a4d12Ab7033483bEEf93b9faCDB818c0f039271
 - BNPL LpTokenVesting: https://etherscan.io/address/0xcb12cb135e0d53775bc4f09be07809b9ea62ea90
+- ThorSwap Batch Sale: https://etherscan.io/address/0xbe50283a23cf952E78272d41ADcF7ffAd711b637
