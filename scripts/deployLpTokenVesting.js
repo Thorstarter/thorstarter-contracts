@@ -9,13 +9,13 @@ async function main() {
   const Contract = await hre.ethers.getContractFactory("LpTokenVesting");
   const args = [
     xruneContract, // token
-    "0x84d821F7FbDD595c4C4A50842913e6b1E07d7a53", // offering token
+    "0xa5f2211b9b8170f694421f2046281775e8468044", // offering token
     sushiRouter, // sushi router
-    0, // vesting cliff
-    63072000, // vesting length (2 year)
+    2592000, // vesting cliff (1 month)
+    23328000, // vesting length (9 months)
     [
       "0x69539C1c678dFd26E626f109149b7cEBDd5E4768",
-      "0x481881E5bA69087316Fb5D47FC2ed8610bd29197"
+      "0xdD20057B8a4F9565cb871a244f04447bE5B03E08"
     ] // parties
   ];
   const contract = await Contract.deploy(...args, {
