@@ -32,15 +32,11 @@ contract StakingSingle is Ownable, ReentrancyGuard {
     event Harvest(address indexed user, uint256 amount);
     event Update(uint64 lastRewardBlock, uint256 totalAmount, uint256 accRewardPerShare);
 
-    constructor(address _token, uint256 _rewardPerBlock, address _depositor) public Ownable() {
+    constructor(address _token, uint256 _rewardPerBlock, address _depositor) Ownable() {
         lastRewardBlock = uint64(block.number);
         rewardPerBlock = _rewardPerBlock;
         token = IERC20(_token);
         depositor = _depositor;
-    }
-
-    function setRewardsPerBlock(uint256 _rewardPerBlock) public onlyOwner {
-        rewardPerBlock = _rewardPerBlock;
     }
 
     function pendingRewards(address _user) external view returns (uint256 pending) {
@@ -66,7 +62,7 @@ contract StakingSingle is Ownable, ReentrancyGuard {
         emit Update(lastRewardBlock, totalAmount, accRewardPerShare);
     }
 
-    function deposit(uint256 amount, address to) public nonReentrant {
+    function deposit(uint256 amount, address to) external nonReentrant {
         require(depositor == msg.sender, "not depositor");
         update();
         UserInfo storage user = userInfo[to];
@@ -108,12 +104,12 @@ contract StakingSingle is Ownable, ReentrancyGuard {
         emit Harvest(msg.sender, _pendingReward);
     }
     
-    function withdrawAndHarvest(uint256 amount, address to) public {
+    function withdrawAndHarvest(uint256 amount, address to) external {
         harvest(to);
         withdraw(amount, to);
     }
 
-    function emergencyWithdraw(address to) public {
+    function emergencyWithdraw(address to) external {
         UserInfo storage user = userInfo[msg.sender];
         uint256 amount = user.amount;
         totalAmount -= amount;

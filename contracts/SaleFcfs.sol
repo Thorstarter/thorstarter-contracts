@@ -32,19 +32,19 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     // Time alloted to claim tiers allocations
     uint public constant ALLOCATION_DURATION = 14400; // 4 hours
     // The raising token
-    IERC20 public paymentToken;
+    IERC20 public immutable paymentToken;
     // The offering token
-    IERC20 public offeringToken;
+    IERC20 public immutable offeringToken;
     // The time (unix seconds) when sale starts
-    uint public startTime;
+    uint public immutable startTime;
     // The time (unix security) when sale ends
-    uint public endTime;
+    uint public immutable endTime;
     // Total amount of raising tokens that need to be raised
     uint public raisingAmount;
     // Total amount of offeringToken that will be offered
-    uint public offeringAmount;
+    uint public immutable offeringAmount;
     // Maximum a user can contribute
-    uint public perUserCap;
+    uint public immutable perUserCap;
     // Wether deposits are paused
     bool public paused;
     // Wether the sale is finalized
@@ -56,7 +56,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     // Participants list
     address[] public addressList;
     // SingleStaking: Contract
-    IStaking public staking;
+    IStaking public immutable staking;
     // Tiers: Contract
     ITiers public tiers;
     // Tiers: Size of guaranteed allocation
@@ -66,6 +66,9 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     // Tiers: multipliers
     uint[] public tiersMultipliers;
 
+    event PausedToggled(bool paused);
+    event TiersConfigured(address tiersContract, uint allocation, uint[] levels, uint[] multipliers);
+    event RaisingAmountSet(uint amount);
     event Deposit(address indexed user, uint amount);
     event Harvest(address indexed user, uint amount);
 
@@ -93,8 +96,8 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         require(_raisingAmount > 0, "raising > 0");
         require(_startTime > block.timestamp, "start > now");
         require(_startTime + ALLOCATION_DURATION < _endTime, "start < end");
-        require(_startTime < 10000000000, "start time not unix");
-        require(_endTime < 10000000000, "start time not unix");
+        require(_startTime < 1e10, "start time not unix");
+        require(_endTime < 1e10, "start time not unix");
     }
 
     function configureTiers(
@@ -102,23 +105,26 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         uint allocation,
         uint[] calldata levels,
         uint[] calldata multipliers
-    ) public onlyOwner {
+    ) external onlyOwner {
         tiers = ITiers(tiersContract);
         tiersAllocation = allocation;
         tiersLevels = levels;
         tiersMultipliers = multipliers;
+        emit TiersConfigured(tiersContract, allocation, levels, multipliers);
     }
 
-    function setRaisingAmount(uint amount) public onlyOwner {
+    function setRaisingAmount(uint amount) external onlyOwner {
       require(block.timestamp < startTime && totalAmount == 0, "sale started");
       raisingAmount = amount;
+      emit RaisingAmountSet(amount);
     }
 
-    function togglePaused() public onlyOwner {
+    function togglePaused() external onlyOwner {
         paused = !paused;
+        emit PausedToggled(paused);
     }
 
-    function finalize() public {
+    function finalize() external {
         require(msg.sender == owner() || block.timestamp > endTime + 14 days, "not allowed");
         finalized = true;
     }
@@ -186,17 +192,17 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         emit Deposit(user, amount);
     }
 
-    function deposit(uint amount) public {
+    function deposit(uint amount) external {
         _transferFrom(msg.sender, amount);
         _deposit(msg.sender, amount);
     }
 
-    function onTokenTransfer(address user, uint amount, bytes calldata _data) public override {
+    function onTokenTransfer(address user, uint amount, bytes calldata _data) external override {
         require(msg.sender == address(paymentToken), "onTokenTransfer: not paymentToken");
         _deposit(user, amount);
     }
 
-    function harvest(bool stake) public nonReentrant {
+    function harvest(bool stake) external nonReentrant {
         require(!paused, "paused");
         require(block.timestamp > endTime, "sale not ended");
         require(finalized, "not finalized");
@@ -216,7 +222,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         emit Harvest(msg.sender, amount);
     }
 
-    function withdrawToken(address token, uint amount) public onlyOwner {
+    function withdrawToken(address token, uint amount) external onlyOwner {
         IERC20(token).safeTransfer(msg.sender, amount);
     }
 

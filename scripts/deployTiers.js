@@ -5,9 +5,9 @@ async function main() {
   const Contract = await hre.ethers.getContractFactory("TiersV1");
   const args = [
     signer.address, // owner
-    "0x4249dA70DdF83bcf7251d55f77CB04B002B64E7b", // dao
-    "0x0fe3ecd525d16fa09aa1ff177014de5304c835e2", // reward/xrune token
-    "0xa4B53C4a1Fd342610cf2CC0fe9a30F3120387cf3", // voters token
+    "0x29965c56D54e82EbC232E554F1218D881f89c904", // dao
+    "0x69fa0fee221ad11012bab0fdb45d444d3d2ce71c", // reward/xrune token
+    "0xEBCD3922A199cd1358277C6458439C13A93531eD", // voters token
   ];
 
   const contract = await upgrades.deployProxy(Contract, args);

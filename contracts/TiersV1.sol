@@ -23,7 +23,8 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
     uint256 private constant PRECISION = 1e8;
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
     bytes32 public constant CONFIG_ROLE = keccak256("CONFIG");
-    bool public paused;
+    bool public pausedDeposit;
+    bool public pausedWithdraw;
     address public dao;
     IERC20Upgradeable public rewardToken;
     IERC20Upgradeable public votersToken;
@@ -37,8 +38,12 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
     EnumerableSetUpgradeable.AddressSet private nfts;
     uint256[50] private __gap;
 
+    event TokenUpdated(address token, uint256 rate);
+    event NftUpdated(address token, uint256 rate);
+    event DepositPaused(bool paused);
+    event WithdrawPaused(bool paused);
     event Donate(address indexed user, uint256 amount);
-    event Deposit(address indexed user, uint256 amount, address indexed to);
+    event Deposit(address indexed user, uint256 amount);
     event Withdraw(address indexed user, uint256 amount, address indexed to);
     event WithdrawNow(address indexed user, uint256 amount, address indexed to);
 
@@ -57,13 +62,15 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
         lastFeeGrowth = 1;
     }
 
-    function updateToken(address[] calldata _tokens, uint[] calldata _rates) external onlyRole(CONFIG_ROLE) {
+    function updateToken(address[] calldata _tokens, uint256[] calldata _rates) external onlyRole(CONFIG_ROLE) {
         require(_tokens.length == _rates.length, "tokens and rates length");
         for (uint256 i = 0; i < _tokens.length; i++) {
-            require(_tokens[i] != address(0), "token is zero");
-            require(_tokens[i] != address(votersToken), "do not add voters to tokens");
-            tokens.add(_tokens[i]);
-            tokenRates[_tokens[i]] = _rates[i];
+            address token = _tokens[i];
+            require(token != address(0), "token is zero");
+            require(token != address(votersToken), "do not add voters to tokens");
+            tokens.add(token);
+            tokenRates[token] = _rates[i];
+            emit TokenUpdated(token, _rates[i]);
         }
     }
 
@@ -71,6 +78,7 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
         require(_token != address(0), "token is zero");
         nfts.add(_token);
         nftRates[_token] = _rate;
+        emit NftUpdated(_token, _rate);
     }
 
     function updateVotersToken(address _token) external onlyRole(CONFIG_ROLE) {
@@ -87,12 +95,19 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
         dao = _dao;
     }
 
-    function togglePaused() external onlyRole(CONFIG_ROLE) {
-        paused = !paused;
+    function togglePausedDeposit() external onlyRole(CONFIG_ROLE) {
+        pausedDeposit = !pausedDeposit;
+        emit DepositPaused(pausedDeposit);
+    }
+
+    function togglePausedWithdraw() external onlyRole(CONFIG_ROLE) {
+        pausedWithdraw = !pausedWithdraw;
+        emit WithdrawPaused(pausedWithdraw);
     }
 
     function totalAmount() public view returns (uint256 total) {
-        for (uint256 i = 0; i < tokens.length(); i++) {
+        uint256 length = tokens.length();
+        for (uint256 i = 0; i < length; i++) {
             address token = tokens.at(i);
             total += totalAmounts[token] * tokenRates[token] / PRECISION;
         }
@@ -110,20 +125,31 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
         return (tokensOnlyTotal * (lastFeeGrowth - userInfos[user].lastFeeGrowth)) / PRECISION;
     }
 
-    function userInfoAmounts(address user) public view returns (uint256, uint256, address[] memory, uint256[] memory, uint256[] memory) {
+    function userInfoAmount(address user, address token) private view returns (uint256) {
+        return userInfos[user].amounts[token];
+    }
+
+    function userInfoBalance(address user, address token) private view returns (uint256) {
+        return IERC20Upgradeable(token).balanceOf(user);
+    }
+
+    function userInfoAmounts(address user) external view returns (uint256, uint256, address[] memory, uint256[] memory, uint256[] memory) {
         (uint256 tokensOnlyTotal, uint256 total) = userInfoTotal(user);
         uint256 tmp = tokens.length() + 1 + nfts.length();
         address[] memory addresses = new address[](tmp);
         uint256[] memory rates = new uint256[](tmp);
         uint256[] memory amounts = new uint256[](tmp);
 
-        for (uint256 i = 0; i < tokens.length(); i++) {
-            address token = tokens.at(i);
-            addresses[i] = token;
-            rates[i] = tokenRates[token];
-            amounts[i] = userInfos[user].amounts[token];
-            if (token == address(rewardToken)) {
-                amounts[i] += userInfoPendingFees(user, tokensOnlyTotal);
+        {
+            uint256 tokensLength = tokens.length();
+            for (uint256 i = 0; i < tokensLength; i++) {
+                address token = tokens.at(i);
+                addresses[i] = token;
+                rates[i] = tokenRates[token];
+                amounts[i] = userInfoAmount(user, token);
+                if (token == address(rewardToken)) {
+                    amounts[i] += userInfoPendingFees(user, tokensOnlyTotal);
+                }
             }
         }
 
@@ -132,11 +158,14 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
         rates[tmp - 1] = tokenRates[address(votersToken)];
         amounts[tmp - 1] = votersToken.balanceOf(user);
 
-        for (uint256 i = 0; i < nfts.length(); i++) {
-            address token = nfts.at(i);
-            addresses[tmp + i] = token;
-            rates[tmp + i] = nftRates[token];
-            amounts[tmp + i] = IERC20Upgradeable(token).balanceOf(user);
+        {
+            uint256 nftLength = nfts.length();
+            for (uint256 i = 0; i < nftLength; i++) {
+                address token = nfts.at(i);
+                addresses[tmp + i] = token;
+                rates[tmp + i] = nftRates[token];
+                amounts[tmp + i] = userInfoBalance(user, token);
+            }
         }
 
         return (tokensOnlyTotal, total, addresses, rates, amounts);
@@ -144,7 +173,8 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
 
     function userInfoTotal(address user) public view returns (uint256, uint256) {
         uint256 total = 0;
-        for (uint256 i = 0; i < tokens.length(); i++) {
+        uint256 tokensLength = tokens.length();
+        for (uint256 i = 0; i < tokensLength; i++) {
             address token = tokens.at(i);
             total += userInfos[user].amounts[token] * tokenRates[token] / PRECISION;
         }
@@ -179,31 +209,33 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
         emit Donate(msg.sender, amount);
     }
 
-    function deposit(address token, uint256 amount, address to) external nonReentrant {
-        require(!paused, "paused");
+    function deposit(address token, uint256 amount) external nonReentrant {
+        require(!pausedDeposit, "paused");
         require(tokenRates[token] > 0, "not a supported token");
-        (UserInfo storage user,,) = _userInfo(to);
+        (UserInfo storage userInfo,,) = _userInfo(msg.sender);
 
         _transferFrom(IERC20Upgradeable(token), msg.sender, amount);
 
         totalAmounts[token] += amount;
-        user.amounts[token] += amount;
-        user.lastDeposit = block.timestamp;
+        userInfo.amounts[token] += amount;
+        userInfo.lastDeposit = block.timestamp;
 
-        emit Deposit(msg.sender, amount, to);
+        emit Deposit(msg.sender, amount);
     }
 
-    function onTokenTransfer(address user, uint amount, bytes calldata _data) public override {
+    function onTokenTransfer(address user, uint amount, bytes calldata _data) external override {
+        require(!pausedDeposit, "paused");
         require(msg.sender == address(rewardToken), "onTokenTransfer: not rewardToken");
         (UserInfo storage userInfo,,) = _userInfo(user);
         totalAmounts[address(rewardToken)] += amount;
         userInfo.amounts[address(rewardToken)] += amount;
-        emit Deposit(user, amount, user);
+        userInfo.lastDeposit = block.timestamp;
+        emit Deposit(user, amount);
     }
 
     function withdraw(address token, uint256 amount, address to) external nonReentrant {
         (UserInfo storage user,,) = _userInfo(msg.sender);
-        require(!paused, "paused");
+        require(!pausedWithdraw, "paused");
         require(block.timestamp > user.lastDeposit + 7 days, "can't withdraw before 7 days after last deposit");
 
         totalAmounts[token] -= amount;
@@ -217,7 +249,7 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
 
     function withdrawNow(address token, uint256 amount, address to) external nonReentrant {
         (UserInfo storage user,,) = _userInfo(msg.sender);
-        require(!paused, "paused");
+        require(!pausedWithdraw, "paused");
 
         uint256 half = amount / 2;
         totalAmounts[token] -= amount;
@@ -237,7 +269,7 @@ contract TiersV1 is IERC677Receiver, Initializable, ReentrancyGuardUpgradeable, 
         emit WithdrawNow(msg.sender, amount, to);
     }
 
-    function migrateRewards(uint256 amount) public onlyRole(ADMIN_ROLE) {
+    function migrateRewards(uint256 amount) external onlyRole(ADMIN_ROLE) {
         rewardToken.safeTransfer(msg.sender, amount);
     }
 
