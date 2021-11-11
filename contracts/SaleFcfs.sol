@@ -30,11 +30,13 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
 
     uint public constant PRECISION = 1e8;
     // Time alloted to claim tiers allocations
-    uint public constant ALLOCATION_DURATION = 14400; // 4 hours
+    uint public constant ALLOCATION_DURATION = 3600; // 1 hour
     // The raising token
     IERC20 public immutable paymentToken;
     // The offering token
     IERC20 public immutable offeringToken;
+    // The vXRUNE Token
+    IERC20 public immutable vxrune;
     // The time (unix seconds) when sale starts
     uint public immutable startTime;
     // The time (unix security) when sale ends
@@ -75,6 +77,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     constructor(
         address _paymentToken,
         address _offeringToken,
+        address _vxrune,
         uint _startTime,
         uint _endTime,
         uint _offeringAmount,
@@ -84,6 +87,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     ) Ownable() {
         paymentToken = IERC20(_paymentToken);
         offeringToken = IERC20(_offeringToken);
+        vxrune = IERC20(_vxrune);
         startTime = _startTime;
         endTime = _endTime;
         offeringAmount = _offeringAmount;
@@ -125,7 +129,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     }
 
     function finalize() external {
-        require(msg.sender == owner() || block.timestamp > endTime + 14 days, "not allowed");
+        require(msg.sender == owner() || block.timestamp > endTime + 30 days, "not allowed");
         finalized = true;
     }
 
@@ -145,30 +149,28 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         return (userInfo[_user].amount * offeringAmount) / raisingAmount;
     }
 
-    function getUserAllocation(address user) public view returns (uint) {
-        uint allocation = 0;
-
-        // Allocation is zero if user just joined / changed tiers
+    function getUserAllocation(address user) public view returns (uint, uint) {
+        // Allocation is zero if user just joined / changed tiers, or is not in tiers
         (, uint lastDeposit,) = tiers.userInfos(user);
-        if (lastDeposit >= startTime) {
-          return allocation;
+        if (lastDeposit >= startTime || lastDeposit == 0) {
+          return (0, 0);
         }
 
         // Find the highest tiers and use that allocation amount
+        uint allocation = 0;
         (, uint tiersTotal) = tiers.userInfoTotal(user);
         for (uint i = 0; i < tiersLevels.length; i++) {
             if (tiersTotal >= tiersLevels[i]) {
                 allocation = (tiersAllocation * tiersMultipliers[i]) / PRECISION;
             }
         }
-        return allocation;
+        return (allocation, tiersTotal);
     }
 
     function _deposit(address user, uint amount) private nonReentrant {
         require(!paused, "paused");
         require(block.timestamp >= startTime && block.timestamp <= endTime, "sale not active");
         require(amount > 0, "need amount > 0");
-        require(perUserCap == 0 || userInfo[user].amount + amount <= perUserCap, "over per user cap");
         require(totalAmount < raisingAmount, "sold out");
 
         if (userInfo[user].amount == 0) {
@@ -176,14 +178,17 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         }
 
         // Check tiers and cap purchase to allocation
+        (uint allocation, uint tiersTotal) = getUserAllocation(user);
         if (block.timestamp < startTime + ALLOCATION_DURATION) {
-            uint allocation = getUserAllocation(user);
             require(userInfo[user].amount + amount <= allocation, "over allocation size");
+        } else {
+            require(perUserCap == 0 || userInfo[user].amount + amount <= perUserCap, "over per user cap");
+            require(vxrune.balanceOf(user) >= 100 || tiersTotal >= 100, "minimum 100 vXRUNE or staked to participate");
         }
 
         // Refund any payment amount that would bring up over the raising amount
         if (totalAmount + amount > raisingAmount) {
-            paymentToken.safeTransfer(user, (totalAmount+amount)-raisingAmount);
+            paymentToken.safeTransfer(user, (totalAmount + amount) - raisingAmount);
             amount = raisingAmount - totalAmount;
         }
 

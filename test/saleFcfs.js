@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const {
   ADDRESS_ZERO,
+  ADDRESS_DEAD,
   deployRegistry,
   currentTime,
   advanceToTime,
@@ -31,22 +32,27 @@ describe("SaleFcfs", function() {
     );
     await this.voters.deployed();
 
-    this.Tiers = await ethers.getContractFactory("Tiers");
-    this.tiers = await this.Tiers.deploy(
+    this.Tiers = await ethers.getContractFactory("TiersV1");
+    this.tiers = await upgrades.deployProxy(this.Tiers, [
       this.signer.address,
+      ADDRESS_DEAD,
       this.paymentToken.address,
       this.voters.address
-    );
+    ]);
     await this.tiers.deployed();
+    await this.tiers.updateToken([this.paymentToken.address], [bn("100000000", 0)]);
     await this.tiers.updateNft(this.paymentToken.address, bn("250"));
+    await this.paymentToken.approve(this.tiers.address, bn('100'));
+    await this.tiers.deposit(this.paymentToken.address, bn('100'));
 
     this.deploySale = async function(perUserCap = "100") {
       this.start = (await currentTime()).toNumber();
       this.sale = await this.Sale.deploy(
         this.paymentToken.address,
         this.offeringToken.address,
+        this.voters.address,
         this.start + 1000,
-        this.start + 20000,
+        this.start + 1000+3600+3600,
         bn("1000"),
         bn("100"),
         bn(perUserCap),
@@ -77,13 +83,23 @@ describe("SaleFcfs", function() {
       await this.sale.deposit(bn("1"));
     });
 
-    await advanceToTime(this.start + 16000);
+    await advanceToTime(this.start + 4601);
+
+    await expectError("minimum 100 vXRUNE or staked", async () => {
+      await this.paymentToken.connect(this.signers[1]).approve(this.sale.address, bn("1"));
+      await this.sale.connect(this.signers[1]).deposit(bn("1"));
+    });
 
     await this.sale.deposit(bn("3"));
     expect((await this.sale.userInfo(this.signer.address))[0]).to.equal(
       bn("3")
     );
     expect(await this.sale.totalAmount()).to.equal(bn("3"));
+
+    await expectError("over per user cap", async () => {
+      await this.sale.deposit(bn("101"));
+    });
+
     await this.paymentToken.transferAndCall(this.sale.address, bn("97"), "0x");
     expect((await this.sale.userInfo(this.signer.address))[0]).to.equal(
       bn("100")
@@ -94,10 +110,6 @@ describe("SaleFcfs", function() {
       await this.paymentToken
         .connect(this.signers[1])
         .transferAndCall(this.sale.address, bn("1"), "0x");
-    });
-
-    await expectError("over per user cap", async () => {
-      await this.sale.deposit(bn("101"));
     });
 
     await this.sale.togglePaused();
@@ -127,21 +139,64 @@ describe("SaleFcfs", function() {
     });
   });
 
-  it("harvestTokens", async function() {
+  it("deposit (tiers) (2x)", async function() {
+    // Get into tier 2
+    await this.paymentToken.transferAndCall(
+      this.tiers.address,
+      bn("400"),
+      "0x"
+    );
+
+    await advanceToTime(this.start + 1001);
+
+    await expectError("over allocation size", async () => {
+      await this.paymentToken.transferAndCall(
+        this.sale.address,
+        bn("51"),
+        "0x"
+      );
+    });
+
+    await this.paymentToken.transferAndCall(this.sale.address, bn("50"), "0x");
+    expect((await this.sale.userInfo(this.signer.address))[0]).to.equal(
+      bn("50")
+    );
+  });
+
+  it("deposit (tiers) (late deposit)", async function() {
+    await advanceToTime(this.start + 1001);
+
+    // Deposit while sale is active
+    await this.paymentToken.transferAndCall(
+      this.tiers.address,
+      bn("1"),
+      "0x"
+    );
+
+    await expectError("over allocation size", async () => {
+      await this.paymentToken.transferAndCall(
+        this.sale.address,
+        bn("1"),
+        "0x"
+      );
+    });
+  });
+
+  it("harvest", async function() {
     await this.deploySale("101");
 
     await expectError("sale not ended", async () => {
       await this.sale.harvest(false);
     });
 
-    await advanceToTime(this.start + 16000);
+    await advanceToTime(this.start + 4601);
 
     let balanceBefore = await this.paymentToken.balanceOf(this.signer.address);
     await this.paymentToken.transferAndCall(this.sale.address, bn("101"), "0x");
     let balanceAfter = await this.paymentToken.balanceOf(this.signer.address);
     expect(balanceAfter.sub(balanceBefore)).to.equal(bn("-100"));
 
-    await advanceToTime(this.start + 20001);
+    await advanceToTime(this.start + 8201);
 
     await expectError("not finalized", async () => {
       await this.sale.harvest(false);
@@ -158,7 +213,7 @@ describe("SaleFcfs", function() {
     });
 
     await this.deploySale();
-    await advanceToTime(this.start + 20001);
+    await advanceToTime(this.start + 8201);
     await this.sale.finalize();
     await expectError("have you participated?", async () => {
       await this.sale.harvest(false);
@@ -167,9 +222,7 @@ describe("SaleFcfs", function() {
 
   it("withdrawToken", async function() {
     await this.paymentToken.transfer(this.sale.address, bn("2"));
-    const balanceBefore = await this.paymentToken.balanceOf(
-      this.signer.address
-    );
+    const balanceBefore = await this.paymentToken.balanceOf(this.signer.address);
     await this.sale.withdrawToken(this.paymentToken.address, bn("1"));
     const balanceAfter = await this.paymentToken.balanceOf(this.signer.address);
     expect(balanceAfter.sub(balanceBefore)).to.equal(bn("1"));
