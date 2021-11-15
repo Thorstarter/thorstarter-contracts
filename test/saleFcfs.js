@@ -45,7 +45,7 @@ describe("SaleFcfs", function() {
     await this.paymentToken.approve(this.tiers.address, bn('100'));
     await this.tiers.deposit(this.paymentToken.address, bn('100'));
 
-    this.deploySale = async function(perUserCap = "100") {
+    this.deploySale = async function(perUserCap = "50", tiersCap = "100") {
       this.start = (await currentTime()).toNumber();
       this.sale = await this.Sale.deploy(
         this.paymentToken.address,
@@ -55,6 +55,7 @@ describe("SaleFcfs", function() {
         this.start + 1000+3600+3600,
         bn("1000"),
         bn("100"),
+        bn(tiersCap),
         bn(perUserCap),
         ADDRESS_ZERO
       );
@@ -77,6 +78,8 @@ describe("SaleFcfs", function() {
   });
 
   it("deposit", async function() {
+    await this.deploySale("100");
+
     await this.paymentToken.approve(this.sale.address, bn("1000"));
 
     await expectError("not active", async () => {
@@ -97,7 +100,7 @@ describe("SaleFcfs", function() {
     expect(await this.sale.totalAmount()).to.equal(bn("3"));
 
     await expectError("over per user cap", async () => {
-      await this.sale.deposit(bn("101"));
+      await this.sale.deposit(bn("126"));
     });
 
     await this.paymentToken.transferAndCall(this.sale.address, bn("97"), "0x");
@@ -137,6 +140,13 @@ describe("SaleFcfs", function() {
     await expectError("over allocation size", async () => {
       await this.paymentToken.transferAndCall(this.sale.address, bn("1"), "0x");
     });
+
+    // Get more allocation for fcfs
+    await advanceToTime(this.start + 4601);
+    await this.paymentToken.transferAndCall(this.sale.address, bn("50"), "0x");
+    expect((await this.sale.userInfo(this.signer.address))[0]).to.equal(
+      bn("75")
+    );
   });
 
   it("deposit (tiers) (2x)", async function() {
@@ -161,6 +171,29 @@ describe("SaleFcfs", function() {
     expect((await this.sale.userInfo(this.signer.address))[0]).to.equal(
       bn("50")
     );
+  });
+
+  it("deposit (tiers) (hit cap)", async function() {
+    await this.deploySale("100", "10");
+
+    // Get into tier 2
+    await this.paymentToken.transferAndCall(
+      this.tiers.address,
+      bn("400"),
+      "0x"
+    );
+
+    await advanceToTime(this.start + 1001);
+
+    await expectError("reached phase 1 total cap", async () => {
+      await this.paymentToken.transferAndCall(
+        this.sale.address,
+        bn("11"),
+        "0x"
+      );
+    });
+
+    await this.paymentToken.transferAndCall(this.sale.address, bn("10"), "0x");
   });
 
   it("deposit (tiers) (late deposit)", async function() {

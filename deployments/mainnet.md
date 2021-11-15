@@ -15,6 +15,7 @@
 - VestingDispenser: https://etherscan.io/address/0x6A483903AaA40f2543EDb4DbbC071A6B30b1b70a
 - VotersTcLpRequester: https://etherscan.io/address/0x3fe9995dAEAe2510C1984E8D211d5f4480b26727
 - Tiers: https://etherscan.io/address/0x817ba0ecafD58460bC215316a7831220BFF11C80 (V1 0xf0a1265e4f171b929aaf00f5921fa2badc122f3f)
+- TiersInfo: https://etherscan.io/address/0x87AE15ac6E230Adb1E2C8Dd18E6c0685EbbcB641
 
 ### Sales
 
@@ -24,3 +25,4 @@
 - BNPL LpTokenVesting: https://etherscan.io/address/0xcb12cb135e0d53775bc4f09be07809b9ea62ea90
 - THORSwap Batch Sale: https://etherscan.io/address/0xbe50283a23cf952E78272d41ADcF7ffAd711b637
 - THORSwap LpTokenVesting : https://etherscan.io/address/0xFD3322Cf85d358Fc591dbb8C5e56e7185F7E5aAc
+- THORWallet FCFS Sale: https://etherscan.io/address/0xd980a5fb418E2127573a001147B4EAdFE283c817

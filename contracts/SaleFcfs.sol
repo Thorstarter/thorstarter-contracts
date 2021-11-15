@@ -30,7 +30,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
 
     uint public constant PRECISION = 1e8;
     // Time alloted to claim tiers allocations
-    uint public constant ALLOCATION_DURATION = 3600; // 1 hour
+    uint public constant ALLOCATION_DURATION = 7200; // 2 hours
     // The raising token
     IERC20 public immutable paymentToken;
     // The offering token
@@ -41,10 +41,12 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     uint public immutable startTime;
     // The time (unix security) when sale ends
     uint public immutable endTime;
+    // Total amount of offering tokens that will be offered
+    uint public offeringAmount;
     // Total amount of raising tokens that need to be raised
     uint public raisingAmount;
-    // Total amount of offeringToken that will be offered
-    uint public immutable offeringAmount;
+    // Total amount of raising tokens that can be raised from tiers
+    uint public raisingAmountTiers;
     // Maximum a user can contribute
     uint public immutable perUserCap;
     // Wether deposits are paused
@@ -71,6 +73,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
     event PausedToggled(bool paused);
     event TiersConfigured(address tiersContract, uint allocation, uint[] levels, uint[] multipliers);
     event RaisingAmountSet(uint amount);
+    event AmountsSet(uint offering, uint raising, uint raisingTiers);
     event Deposit(address indexed user, uint amount);
     event Harvest(address indexed user, uint amount);
 
@@ -82,6 +85,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         uint _endTime,
         uint _offeringAmount,
         uint _raisingAmount,
+        uint _raisingAmountTiers,
         uint _perUserCap,
         address _staking
     ) Ownable() {
@@ -92,6 +96,7 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         endTime = _endTime;
         offeringAmount = _offeringAmount;
         raisingAmount = _raisingAmount;
+        raisingAmountTiers = _raisingAmountTiers;
         perUserCap = _perUserCap;
         staking = IStaking(_staking);
         require(_paymentToken != address(0) && _offeringToken != address(0), "!zero");
@@ -123,6 +128,14 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
       emit RaisingAmountSet(amount);
     }
 
+    function setAmounts(uint offering, uint raising, uint raisingTiers) external onlyOwner {
+      require(block.timestamp < startTime && totalAmount == 0, "sale started");
+      offeringAmount = offering;
+      raisingAmount = raising;
+      raisingAmountTiers = raisingTiers;
+      emit AmountsSet(offering, raising, raisingTiers);
+    }
+
     function togglePaused() external onlyOwner {
         paused = !paused;
         emit PausedToggled(paused);
@@ -137,8 +150,8 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         return addressList.length;
     }
 
-    function getParams() external view returns (uint, uint, uint, uint, uint, uint, bool, bool) {
-        return (startTime, endTime, raisingAmount, offeringAmount, perUserCap, totalAmount, paused, finalized);
+    function getParams() external view returns (uint, uint, uint, uint, uint, uint, uint, bool, bool) {
+        return (startTime, endTime, raisingAmount, offeringAmount, raisingAmountTiers, perUserCap, totalAmount, paused, finalized);
     }
 
     function getTiersParams() external view returns (uint, uint[] memory, uint[] memory) {
@@ -181,8 +194,9 @@ contract SaleFcfs is IERC677Receiver, Ownable, ReentrancyGuard {
         (uint allocation, uint tiersTotal) = getUserAllocation(user);
         if (block.timestamp < startTime + ALLOCATION_DURATION) {
             require(userInfo[user].amount + amount <= allocation, "over allocation size");
+            require(totalAmount + amount <= raisingAmountTiers, "reached phase 1 total cap");
         } else {
-            require(perUserCap == 0 || userInfo[user].amount + amount <= perUserCap, "over per user cap");
+            require(perUserCap == 0 || userInfo[user].amount + amount <= allocation + perUserCap, "over per user cap");
             require(vxrune.balanceOf(user) >= 100 || tiersTotal >= 100, "minimum 100 vXRUNE or staked to participate");
         }
 

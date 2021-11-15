@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 const parseUnits = ethers.utils.parseUnits;
-const networkId = '3';
+const networkId = '1';
 const addresses = {
   '1': {
     xrune: '0x69fa0fee221ad11012bab0fdb45d444d3d2ce71c',
@@ -22,14 +22,15 @@ async function main() {
   const now = (Date.now() / 1000) | 0;
   const args = [
     addresses[networkId].xrune, // payment token
-    addresses[networkId].offering, // offering token
+    '0x108a850856db3f85d0269a2693d896b394c80325', // offering token
     addresses[networkId].voters, // vxrune
-    now + 300, // start time
-    now + 7500, // end time
-    parseUnits("1000"), // offerring amount
-    parseUnits("100"), // raising amount
-    parseUnits("25"), // per user cap amount
-    '0x0000000000000000000000000000000000000000' // staking
+    1636988400, // start time
+    1636997400, // end time
+    parseUnits("12000000"), // offerring amount
+    parseUnits("461538.4615384615"), // raising amount
+    parseUnits("415384.6153846154"), // raising amount tiers
+    parseUnits("461.5384615385"), // per user cap amount
+    "0x0000000000000000000000000000000000000000" // staking
   ];
   const contract = await Contract.deploy(...args, {
     // gasLimit: 5000000,
@@ -39,7 +40,7 @@ async function main() {
   console.log(contract.address, args);
   await contract.configureTiers(
     addresses[networkId].tiers,
-    50,
+    parseUnits('153.8461538462'),
     [parseUnits('2500'), parseUnits('7500'), parseUnits('25000'), parseUnits('150000')],
     [parseUnits('1', 8), parseUnits('1.5', 8), parseUnits('3', 8), parseUnits('10', 8)],
   );
