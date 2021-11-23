@@ -6,16 +6,15 @@ async function main() {
   const signer = await ethers.getSigner();
   const gasPrice = (await signer.getGasPrice()).mul(125).div(100);
 
-  const Contract = await hre.ethers.getContractFactory("Voters");
-  const contract = Contract.attach(
-    "0xEBCD3922A199cd1358277C6458439C13A93531eD"
+  const Contract = await hre.ethers.getContractFactory("SaleFcfs");
+  const contract = Contract.attach("0xd980a5fb418E2127573a001147B4EAdFE283c817");
+  await contract.configureTiers(
+    '0x817ba0ecafD58460bC215316a7831220BFF11C80',
+    parseUnits('141.8238547724'),
+    [parseUnits('2500'), parseUnits('7500'), parseUnits('25000'), parseUnits('150000')],
+    [parseUnits('1', 8), parseUnits('1.5', 8), parseUnits('5', 8), parseUnits('10', 8)],
+    { gasPrice }
   );
-  const gas = await contract.estimateGas.updateTclp(
-    ["0x2b0A6d28CE1d149201323971a8BDC544795cf7eB"],
-    [0],
-    [0]
-  );
-  console.log(gas.toNumber());
 }
 
 main()
