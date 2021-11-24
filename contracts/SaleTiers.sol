@@ -16,9 +16,9 @@ contract SaleTiers is Ownable, ReentrancyGuard {
     }
 
     IERC20 public immutable offeringToken;
-    bytes32 public immutable merkleRoot;
-    uint public immutable startTime;
-    uint public immutable endTime;
+    bytes32 public merkleRoot;
+    uint public startTime;
+    uint public endTime;
     uint public offeringAmount;
     uint public raisingAmount;
     bool public paused;
@@ -28,6 +28,8 @@ contract SaleTiers is Ownable, ReentrancyGuard {
     mapping(address => UserInfo) public userInfos;
 
     event SetAmounts(uint offering, uint raising);
+    event SetTimes(uint start, uint end);
+    event SetMerkleRoot(bytes32 merkleRoot);
     event SetPaused(bool paused);
     event SetFinalized();
     event Deposit(address indexed user, uint amount);
@@ -57,10 +59,20 @@ contract SaleTiers is Ownable, ReentrancyGuard {
     }
 
     function setAmounts(uint offering, uint raising) external onlyOwner {
-      require(block.timestamp < startTime && totalAmount == 0, "sale started");
       offeringAmount = offering;
       raisingAmount = raising;
       emit SetAmounts(offering, raising);
+    }
+
+    function setTimes(uint _startTime, uint _endTime) external onlyOwner {
+      startTime = _startTime;
+      endTime = _endTime;
+      emit SetTimes(_startTime, _endTime);
+    }
+
+    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+        merkleRoot = _merkleRoot;
+        emit SetMerkleRoot(_merkleRoot);
     }
 
     function setPaused(bool _paused) external onlyOwner {

@@ -1,4 +1,10 @@
 const hre = require("hardhat");
+const { MerkleTree } = require("merkletreejs");
+const keccak256 = require("keccak256");
+const { bn, ADDRESS_ZERO } = require('../test/utilities');
+
+const allocations = `0x41B720be5796ECb7BEB5f712e1cC57dE631240c0,0.00,0,100.00,,
+0x69539C1c678dFd26E626f109149b7cEBDd5E4768,0.00,0,100.00,,`;
 
 const parseUnits = ethers.utils.parseUnits;
 const networkId = '1';
@@ -17,33 +23,39 @@ const addresses = {
 };
 
 async function main() {
-  const signer = await ethers.getSigner();
-  const Contract = await hre.ethers.getContractFactory("SaleFcfs");
+  // const signer = await ethers.getSigner();
+  const users = allocations.split('\n').map(line => {
+    const parts = line.split(',');
+    if (parseFloat(parts[3]) === 0) return null;
+    return {address: parts[0], amount: bn(parts[3]).div('4200')};
+  }).filter(u => u);
+  const elements = users.map((x) =>
+    ethers.utils.solidityKeccak256(["address", "uint256"], [x.address, x.amount])
+  );
+  const merkleTree = new MerkleTree(elements, keccak256, { sort: true });
+  const root = merkleTree.getHexRoot();
+  require('fs').writeFileSync('allocations.json', JSON.stringify(users.map((u, i) => {
+    u.proof = merkleTree.getHexProof(elements[i]);
+    u.amount = ethers.utils.formatUnits(u.amount);
+    return u;
+  }), null, 2));
+
+  const Contract = await hre.ethers.getContractFactory("SaleTiers");
   const now = (Date.now() / 1000) | 0;
   const args = [
-    addresses[networkId].xrune, // payment token
-    '0x108a850856db3f85d0269a2693d896b394c80325', // offering token
-    addresses[networkId].voters, // vxrune
-    1636988400, // start time
-    1636997400, // end time
-    parseUnits("12000000"), // offerring amount
-    parseUnits("461538.4615384615"), // raising amount
-    parseUnits("415384.6153846154"), // raising amount tiers
-    parseUnits("461.5384615385"), // per user cap amount
-    "0x0000000000000000000000000000000000000000" // staking
+    '0x829c97092c0cc92efe7397dd3ddb831cc5835bae', // offering token
+    root, // merkle tree root
+    1637852400, // start time
+    1637859600, // end time
+    parseUnits("15000000"), // offerring amount
+    parseUnits("35.7142857143"), // raising amount
   ];
   const contract = await Contract.deploy(...args, {
     // gasLimit: 5000000,
-    // gasPrice: parseUnits("100", "gwei"),
+    gasPrice: parseUnits("200", "gwei"),
   });
   await contract.deployed();
   console.log(contract.address, args);
-  await contract.configureTiers(
-    addresses[networkId].tiers,
-    parseUnits('153.8461538462'),
-    [parseUnits('2500'), parseUnits('7500'), parseUnits('25000'), parseUnits('150000')],
-    [parseUnits('1', 8), parseUnits('1.5', 8), parseUnits('3', 8), parseUnits('10', 8)],
-  );
   if (hre.network.name !== "hardhat") {
     await new Promise(resolve => setTimeout(resolve, 20000));
     await hre.run("verify:verify", {
