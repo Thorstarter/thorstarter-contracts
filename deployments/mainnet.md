@@ -16,6 +16,7 @@
 - VotersTcLpRequester: https://etherscan.io/address/0x3fe9995dAEAe2510C1984E8D211d5f4480b26727
 - Tiers: https://etherscan.io/address/0x817ba0ecafD58460bC215316a7831220BFF11C80 (V1 0xf0a1265e4f171b929aaf00f5921fa2badc122f3f)
 - TiersInfo: https://etherscan.io/address/0x87AE15ac6E230Adb1E2C8Dd18E6c0685EbbcB641
+- SkyrimRefund: https://etherscan.io/address/0xb8C1Aaf54751efA11D2D8A5DF503b8afB6d80322
 
 ### Sales
 
