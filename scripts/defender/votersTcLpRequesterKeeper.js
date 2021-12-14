@@ -98,16 +98,16 @@ exports.handler = async function (event) {
     }
   }
   
-  console.log(addresses.length, users, values.map(v => ethers.utils.formatUnits(v)));
+  console.log(lastRequest.toString(), requestCount.toString(), addresses.length, users, values.map(v => ethers.utils.formatUnits(v)));
   
   // Call updateTclp's if needed
   if (users.length > 0) {
-    const tx0 = await voters.updateTclp(users, amounts, values, {gasLimit: 14000000});
+    const tx0 = await voters.updateTclp(users, amounts, values, {gasLimit: 10000000});
     console.log('updateTcLp hash:', tx0.hash);
   }
   
   // If we actually processed requests, update last index
-  if (lastRequest !== requestCount) {
+  if (lastRequest.toString() != requestCount.toString()) {
     const tx1 = await contract.setLastRequest(requestCount, {gasLimit: 250000});
     console.log('setLastRequest hash:', tx1.hash);
   }
