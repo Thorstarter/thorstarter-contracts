@@ -5,4 +5,4 @@
 
 ### Sales
 
-- Luart https://finder.terra.money/mainnet/address/terra16leltt86vc4hdlwpzten5v2njjpy67ds8zynpm
+- Luart https://finder.terra.money/mainnet/address/terra10f7w8d5kdzwhlclyk73j887ws8r35972kgzusx
