@@ -11,14 +11,12 @@ const abi = [
 ];
 
 const xrune = '0x69fa0fee221ad11012bab0fdb45d444d3d2ce71c';
-const router = '0xc145990e84155416144c532e31f89b840ca8c2ce';
 
 exports.handler = async function (event) {
   const provider = new DefenderRelayProvider(event);
   const signer = new DefenderRelaySigner(event, provider, { speed: "fast" });
-  const contract = new ethers.Contract(router, abi, signer);
   
-  const aprd = 0.004921; // 500%
+  const aprd = 0.00325; //0.004921; // 500%
   const pools = await httpRequest("https://midgard.thorchain.info/v2/pools");
   const pool = pools.find((p) => p.asset === `ETH.XRUNE-${xrune}`.toUpperCase());
   
@@ -32,7 +30,7 @@ exports.handler = async function (event) {
   );
   const ethChain = chains.find((c) => c.chain === "ETH");
   console.log(`vault: ${ethChain.address}`);
-  
+  const contract = new ethers.Contract(ethChain.router, abi, signer);
   const tx = await contract.deposit(
     ethChain.address,
     xrune,
@@ -40,7 +38,7 @@ exports.handler = async function (event) {
     `DONATE:ETH.XRUNE-${xrune}`.toUpperCase(),
     { gasLimit: 1000000 }
   );
-  await tx.wait();
+  // await tx.wait();
   return { hash: tx.hash };
 };
 
