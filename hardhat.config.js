@@ -1,6 +1,6 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
-require('@openzeppelin/hardhat-upgrades');
+require("@openzeppelin/hardhat-upgrades");
 
 require("@nomiclabs/hardhat-solhint");
 require("solidity-coverage");
@@ -47,6 +47,10 @@ module.exports = {
     },
     fantom: {
       url: "https://rpc.fantom.network", // 250
+      accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY]
+    },
+    polygon: {
+      url: "https://polygon-rpc.com", // 137
       accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY]
     },
     avalanche: {
