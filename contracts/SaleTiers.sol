@@ -15,12 +15,15 @@ contract SaleTiers is Ownable, ReentrancyGuard {
         uint claimed;
     }
 
+    IERC20 public immutable paymentToken;
     IERC20 public immutable offeringToken;
     bytes32 public merkleRoot;
     uint public startTime;
     uint public endTime;
     uint public offeringAmount;
     uint public raisingAmount;
+    uint public vestingInitial; // 1e12 = 100%
+    uint public vestingDuration;
     bool public paused;
     bool public finalized;
     uint public totalAmount;
@@ -28,6 +31,7 @@ contract SaleTiers is Ownable, ReentrancyGuard {
     mapping(address => UserInfo) public userInfos;
 
     event SetAmounts(uint offering, uint raising);
+    event SetVesting(uint initial, uint duration);
     event SetTimes(uint start, uint end);
     event SetMerkleRoot(bytes32 merkleRoot);
     event SetPaused(bool paused);
@@ -36,38 +40,53 @@ contract SaleTiers is Ownable, ReentrancyGuard {
     event Harvest(address indexed user, uint amount);
 
     constructor(
+        address _paymentToken,
         address _offeringToken,
         bytes32 _merkleRoot,
         uint _startTime,
         uint _endTime,
         uint _offeringAmount,
-        uint _raisingAmount
+        uint _raisingAmount,
+        uint _vestingInitial,
+        uint _vestingDuration
     ) Ownable() {
+        paymentToken = IERC20(_paymentToken);
         offeringToken = IERC20(_offeringToken);
         merkleRoot = _merkleRoot;
         startTime = _startTime;
         endTime = _endTime;
         offeringAmount = _offeringAmount;
         raisingAmount = _raisingAmount;
+        vestingInitial = _vestingInitial;
+        vestingDuration = _vestingDuration;
         require(_offeringAmount > 0, "offering > 0");
         require(_raisingAmount > 0, "raising > 0");
         require(_startTime > block.timestamp, "start > now");
         require(_startTime < _endTime, "start < end");
         require(_startTime < 1e10, "start time not unix");
         require(_endTime < 1e10, "start time not unix");
+        require(_vestingInitial < 1e12/2, "vesting initial < 50%");
+        require(_vestingDuration < 365 days, "vesting duration < 1 year");
         emit SetAmounts(_offeringAmount, _raisingAmount);
+        emit SetVesting(_vestingInitial, _vestingDuration);
     }
 
     function setAmounts(uint offering, uint raising) external onlyOwner {
-      offeringAmount = offering;
-      raisingAmount = raising;
-      emit SetAmounts(offering, raising);
+        offeringAmount = offering;
+        raisingAmount = raising;
+        emit SetAmounts(offering, raising);
+    }
+
+    function setVesting(uint initial, uint duration) external onlyOwner {
+        vestingInitial = initial;
+        vestingDuration = duration;
+        emit SetVesting(initial, duration);
     }
 
     function setTimes(uint _startTime, uint _endTime) external onlyOwner {
-      startTime = _startTime;
-      endTime = _endTime;
-      emit SetTimes(_startTime, _endTime);
+        startTime = _startTime;
+        endTime = _endTime;
+        emit SetTimes(_startTime, _endTime);
     }
 
     function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
@@ -92,34 +111,49 @@ contract SaleTiers is Ownable, ReentrancyGuard {
     function getUserInfo(address _user) public view returns (uint, uint, uint, uint) {
         UserInfo memory userInfo = userInfos[_user];
         uint owed = (userInfo.amount * offeringAmount) / raisingAmount;
-        uint claimable = owed / 4;
-        if (block.timestamp > endTime + 30 days) { claimable += owed / 4; }
-        if (block.timestamp > endTime + 60 days) { claimable += owed / 4; }
-        if (block.timestamp > endTime + 90 days) { claimable += owed / 4; }
+        uint progress = _min(block.timestamp - _min(block.timestamp, endTime), vestingDuration);
+        uint claimable = (owed * vestingInitial) / 1e12;
+        claimable += ((owed - claimable) * progress) / vestingDuration;
         return (userInfo.amount, userInfo.claimed, owed, claimable);
     }
 
-    function deposit(uint allocation, bytes32[] calldata merkleProof) public payable nonReentrant {
+    function _deposit(uint amount, uint allocation, bytes32[] calldata merkleProof) internal nonReentrant {
         UserInfo storage userInfo = userInfos[msg.sender];
-
         require(!paused, "paused");
-        require(block.timestamp >= startTime && block.timestamp <= endTime, "sale not active");
-        require(msg.value > 0, "need amount > 0");
-        require(userInfo.amount + msg.value <= allocation, "over allocation");
-
+        require(amount > 0, "need amount > 0");
         bytes32 node = keccak256(abi.encodePacked(msg.sender, allocation));
         require(MerkleProof.verify(merkleProof, merkleRoot, node), "invalid proof");
+
+        if (block.timestamp > endTime) {
+            require(totalAmount + amount <= raisingAmount, "sold out");
+            require(userInfo.amount + amount <= allocation + (raisingAmount * 25 / 10000), "over allocation");
+        } else {
+            require(block.timestamp >= startTime && block.timestamp <= endTime, "sale not active");
+            require(userInfo.amount + amount <= allocation, "over allocation");
+        }
+
 
         if (userInfo.amount == 0) {
             totalUsers += 1;
         }
-        userInfo.amount = userInfo.amount + msg.value;
-        totalAmount = totalAmount + msg.value;
-        emit Deposit(msg.sender, msg.value);
+        userInfo.amount = userInfo.amount + amount;
+        totalAmount = totalAmount + amount;
+        emit Deposit(msg.sender, amount);
+    }
+
+    function deposit(uint amount, uint allocation, bytes32[] calldata merkleProof) public {
+        require(address(paymentToken) != address(0), "paymentToken is native");
+        paymentToken.safeTransferFrom(msg.sender, address(this), amount);
+        _deposit(amount, allocation, merkleProof);
+    }
+
+    function depositNative(uint allocation, bytes32[] calldata merkleProof) public payable {
+        require(address(paymentToken) == address(0), "paymentToken is not native");
+        _deposit(msg.value, allocation, merkleProof);
     }
 
     function harvest() external nonReentrant {
-        (uint contributed, uint claimed, uint total, uint claimable) = getUserInfo(msg.sender);
+        (uint contributed, uint claimed, , uint claimable) = getUserInfo(msg.sender);
 
         require(!paused, "paused");
         require(block.timestamp > endTime, "sale not ended");
@@ -141,5 +175,9 @@ contract SaleTiers is Ownable, ReentrancyGuard {
         } else {
             IERC20(token).safeTransfer(msg.sender, amount);
         }
+    }
+
+    function _min(uint a, uint b) private pure returns (uint) {
+        return a < b ? a : b;
     }
 }

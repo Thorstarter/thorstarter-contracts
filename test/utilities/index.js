@@ -140,6 +140,7 @@ async function advanceTime(time) {
 
 async function advanceToTime(time) {
   await ethers.provider.send("evm_setNextBlockTimestamp", [time]);
+  await advanceBlock();
 }
 
 const duration = {

@@ -2,6 +2,7 @@
   "extends": "solhint:recommended",
   "rules": {
     "func-order": "off",
+    "not-rely-on-time": "off",
     "mark-callable-contracts": "off",
     "no-empty-blocks": "off",
     "compiler-version": "off",
