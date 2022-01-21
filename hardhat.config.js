@@ -37,6 +37,10 @@ module.exports = {
       url: "https://ropsten.infura.io/v3/" + process.env.INFURA_PROJECT_ID,
       accounts: [process.env.THORSTARTER_TESTING_PRIVATE_KEY]
     },
+    rinkeby: {
+      url: "https://rinkeby.infura.io/v3/" + process.env.INFURA_PROJECT_ID,
+      accounts: [process.env.THORSTARTER_TESTING_PRIVATE_KEY]
+    },
     mainnet: {
       url: "https://mainnet.infura.io/v3/" + process.env.INFURA_PROJECT_ID,
       accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY]
