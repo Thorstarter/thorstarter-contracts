@@ -132,9 +132,13 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         bytes32 node = keccak256(abi.encodePacked(user, allocation));
         require(MerkleProof.verify(merkleProof, merkleRoot, node), "invalid proof");
 
-        if (block.timestamp > endTime) {
+        if (block.timestamp > endTime + 30 minutes) {
+            // no cap
             require(totalAmount + amount <= raisingAmount, "sold out");
-            require(userInfo.amount + amount <= allocation + (raisingAmount * 125 / 100000), "over allocation");
+        } else if (block.timestamp > endTime) {
+            // add 0.0625% of raise in allocation to all participants
+            require(totalAmount + amount <= raisingAmount, "sold out");
+            require(userInfo.amount + amount <= allocation + (raisingAmount * 625 / 1000000), "over allocation");
         } else {
             require(block.timestamp >= startTime && block.timestamp <= endTime, "sale not active");
             require(userInfo.amount + amount <= allocation, "over allocation");
