@@ -27,6 +27,8 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
     uint public vestingDuration;
     bool public paused;
     bool public finalized;
+    bool public fcfsOpen;
+    uint public fcfsAllocation;
     uint public totalAmount;
     uint public totalUsers;
     mapping(address => UserInfo) public userInfos;
@@ -38,6 +40,8 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
     event SetMerkleRoot(bytes32 merkleRoot);
     event SetPaused(bool paused);
     event SetFinalized();
+    event SetFcfsOpen(bool open);
+    event SetFcfsAllocation(uint amount);
     event Deposit(address indexed user, uint amount);
     event Harvest(address indexed user, uint amount);
 
@@ -61,6 +65,7 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         raisingAmount = _raisingAmount;
         vestingInitial = _vestingInitial;
         vestingDuration = _vestingDuration;
+        fcfsAllocation = (raisingAmount * 1000 / 1000000);
         require(_offeringAmount > 0, "offering > 0");
         require(_raisingAmount > 0, "raising > 0");
         require(_startTime < _endTime, "start < end");
@@ -112,6 +117,16 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         emit SetFinalized();
     }
 
+    function setFcfsAllocation(bool open) external onlyOwner {
+        fcfsOpen = open;
+        emit SetFcfsOpen(open);
+    }
+
+    function setFcfsAllocation(uint amount) external onlyOwner {
+        fcfsAllocation = amount;
+        emit SetFcfsAllocation(amount);
+    }
+
     function getParams() external view returns (uint, uint, uint, uint, uint, bool, bool) {
         return (startTime, endTime, raisingAmount, offeringAmount, totalAmount, paused, finalized);
     }
@@ -130,15 +145,17 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         require(!paused, "paused");
         require(amount > 0, "need amount > 0");
         bytes32 node = keccak256(abi.encodePacked(user, allocation));
-        require(MerkleProof.verify(merkleProof, merkleRoot, node), "invalid proof");
+        if (!fcfsOpen) {
+            require(MerkleProof.verify(merkleProof, merkleRoot, node), "invalid proof");
+        }
 
         if (block.timestamp > endTime + 30 minutes) {
             // no cap
             require(totalAmount + amount <= raisingAmount, "sold out");
         } else if (block.timestamp > endTime) {
-            // add 0.0625% of raise in allocation to all participants
+            // add fcfs allocation to all participants
             require(totalAmount + amount <= raisingAmount, "sold out");
-            require(userInfo.amount + amount <= allocation + (raisingAmount * 625 / 1000000), "over allocation");
+            require(userInfo.amount + amount <= allocation + fcfsAllocation, "over allocation");
         } else {
             require(block.timestamp >= startTime && block.timestamp <= endTime, "sale not active");
             require(userInfo.amount + amount <= allocation, "over allocation");

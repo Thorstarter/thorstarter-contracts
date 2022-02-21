@@ -4,7 +4,7 @@ const keccak256 = require("keccak256");
 const { bn, ADDRESS_ZERO } = require("../test/utilities");
 
 const allocations = `0x41B720be5796ECb7BEB5f712e1cC57dE631240c0,0,0,10,,,
-0x69539C1c678dFd26E626f109149b7cEBDd5E4768,0,0,10,,,`;
+0x69539C1c678dFd26E626f109149b7cEBDd5E4768,0,0,1000,,,`;
 
 const parseUnits = ethers.utils.parseUnits;
 
@@ -41,28 +41,27 @@ async function main() {
       2
     )
   );
+  return;
 
   const Contract = await hre.ethers.getContractFactory("SaleTiers");
   const now = (Date.now() / 1000) | 0;
   const args = [
-    "0x2791bca1f2de4661ed88a30c99a7a9449aa84174", // payment token
-    "0x69539C1c678dFd26E626f109149b7cEBDd5E4768", // offering token
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // payment token
+    "0xa5c1940Fa491e830a5a25BDa04986f741f08FD26", // offering token
     root, // merkle tree root
-    1643297400, // start time
-    1643383800, // end time
-    parseUnits("363636363.636363636363636363"), // offerring amount
-    parseUnits("200000", 6), // raising amount
-    parseUnits("0.25", 12), // vesting initial
-    parseUnits("10368000", 0) // vesting duration
+    1645716600, // start time
+    1645803000, // end time
+    parseUnits("3333333.333333333333333333"), // offerring amount
+    parseUnits("300000", 6), // raising amount
+    parseUnits("0.5", 12), // vesting initial
+    parseUnits("15552000", 0) // vesting duration
   ];
-  /*
   const contract = await Contract.deploy(...args, {
     // gasLimit: 2500000,
     // gasPrice: parseUnits("9000", "gwei")
   });
   await contract.deployed();
-  */
-  const contract = { address: "0xa03D89466FBB85F49A828CC8EE2ce5Fa14504D40" };
+  //const contract = { address: "0xa1B97404b22ff7Df434b22D16C197e379bB10033" };
   console.log(contract.address, args);
   if (hre.network.name !== "hardhat") {
     await new Promise(resolve => setTimeout(resolve, 20000));

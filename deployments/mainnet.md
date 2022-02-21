@@ -28,3 +28,4 @@
 - THORSwap LpTokenVesting : https://etherscan.io/address/0xFD3322Cf85d358Fc591dbb8C5e56e7185F7E5aAc
 - THORWallet FCFS Sale: https://etherscan.io/address/0xd980a5fb418E2127573a001147B4EAdFE283c817
 - MINE Network Tiers Sale: https://etherscan.io/address/0xd7a7Bcf3b166E89e8c7d4EEf54F976854E44612B
+- DETF Tiers Sale: https://etherscan.io/address/0xa1B97404b22ff7Df434b22D16C197e379bB10033

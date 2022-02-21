@@ -1,4 +1,0 @@
-run = "npm i && npx hardhat test"
-
-[nix]
-channel = "stable-21_11"
