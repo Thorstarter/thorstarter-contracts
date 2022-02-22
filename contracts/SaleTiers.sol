@@ -134,9 +134,12 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
     function getUserInfo(address _user) public view returns (uint, uint, uint, uint) {
         UserInfo memory userInfo = userInfos[_user];
         uint owed = (userInfo.amount * offeringAmount) / raisingAmount;
-        uint progress = _min(block.timestamp - _min(block.timestamp, endTime), vestingDuration);
+        //uint progress = _min(block.timestamp - _min(block.timestamp, endTime), vestingDuration);
         uint claimable = (owed * vestingInitial) / 1e12;
-        claimable += ((owed - claimable) * progress) / vestingDuration;
+        //claimable += ((owed - claimable) * progress) / vestingDuration;
+        if (block.timestamp > endTime + vestingDuration) {
+            claimable = owed;
+        }
         return (userInfo.amount, userInfo.claimed, owed, claimable);
     }
 
