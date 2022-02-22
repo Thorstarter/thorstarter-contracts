@@ -117,7 +117,7 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         emit SetFinalized();
     }
 
-    function setFcfsAllocation(bool open) external onlyOwner {
+    function setFcfsOpen(bool open) external onlyOwner {
         fcfsOpen = open;
         emit SetFcfsOpen(open);
     }
