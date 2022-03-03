@@ -23,7 +23,7 @@ abstract contract ERC20Vote {
 
     string public symbol;
 
-    uint8 public immutable decimals;
+    uint8 public decimals;
 
     /*///////////////////////////////////////////////////////////////
                             ERC20 STORAGE
@@ -60,9 +60,9 @@ abstract contract ERC20Vote {
     bytes32 public constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
-    uint256 internal immutable INITIAL_CHAIN_ID;
+    uint256 internal INITIAL_CHAIN_ID;
 
-    bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
+    bytes32 internal INITIAL_DOMAIN_SEPARATOR;
 
     mapping(address => uint256) public nonces;
 
@@ -70,11 +70,13 @@ abstract contract ERC20Vote {
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
+    constructor() {}
+
+    function __ERC20Vote_init(
         string memory _name,
         string memory _symbol,
         uint8 _decimals
-    ) {
+    ) internal {
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
