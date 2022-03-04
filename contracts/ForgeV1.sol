@@ -17,11 +17,14 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
         uint256 lockTime;
         uint256 lockDays;
         uint256 unstakedTime;
+        uint256 __gap1;
+        uint256 __gap2;
     }
 
     uint256 private constant PRECISION = 1e8;
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
     bool public paused;
+    address public unlockFeeRecipient;
     IERC20Upgradeable public token;
     mapping(address => Stake[]) public users;
     uint256 public totalUsers;
@@ -40,6 +43,7 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
 
     function initialize(
         address _owner,
+        address _unlockFeeRecipient,
         address _token,
         uint256 _lockDaysMin,
         uint256 _lockDaysMax,
@@ -50,6 +54,7 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
         __ERC20Vote_init("stakedXRUNE", "sXRUNE", 18);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setupRole(ADMIN_ROLE, _owner);
+        unlockFeeRecipient = _unlockFeeRecipient;
         token = IERC20Upgradeable(_token);
         lockDaysMin = _lockDaysMin;
         lockDaysMax = _lockDaysMax;
@@ -59,6 +64,10 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
 
     function setPaused(bool _paused) external onlyRole(ADMIN_ROLE) {
         paused = _paused;
+    }
+
+    function setUnlockFeeRecipient(address _unlockFeeRecipient) external onlyRole(ADMIN_ROLE) {
+        unlockFeeRecipient = _unlockFeeRecipient;
     }
 
     function _stake(address user, uint256 amount, uint256 lockDays) internal nonReentrant {
@@ -75,7 +84,9 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
             shares: shares,
             lockTime: uint48(block.timestamp),
             lockDays: lockDays,
-            unstakedTime: 0
+            unstakedTime: 0,
+            __gap1: 0,
+            __gap2: 0
         }));
 
         _mint(user, shares);
@@ -123,6 +134,7 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
         uint256 progress = ((block.timestamp - stakeRef.lockTime) * 1e12) / (stakeRef.lockDays * 86400);
         uint256 returned = (stakeRef.amount * progress) / 1e12;
         token.safeTransfer(msg.sender, returned);
+        token.safeTransfer(unlockFeeRecipient, stakeRef.amount - returned);
 
         emit UnstakedEarly(msg.sender, stakeIndex, stakeRef.amount, returned);
     }
