@@ -37,6 +37,9 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
     event Staked(address indexed user, uint256 amount, uint256 lockDays, uint256 shares);
     event Unstaked(address indexed staker, uint256 stakeIndex, uint256 amount);
     event UnstakedEarly(address indexed staker, uint256 stakeIndex, uint256 amount, uint256 returned);
+    event SetPaused(bool paused);
+    event SetUnlockFeeRecipient(address recipient);
+    event SetShareBonuses(uint256 perYear, uint256 per1MToken);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
@@ -64,10 +67,18 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
 
     function setPaused(bool _paused) external onlyRole(ADMIN_ROLE) {
         paused = _paused;
+        emit SetPaused(_paused);
     }
 
     function setUnlockFeeRecipient(address _unlockFeeRecipient) external onlyRole(ADMIN_ROLE) {
         unlockFeeRecipient = _unlockFeeRecipient;
+        emit SetUnlockFeeRecipient(_unlockFeeRecipient);
+    }
+
+    function setShareBonuses(uint256 _shareBonusPerYear, uint256 _shareBonusPer1MToken) external onlyRole(ADMIN_ROLE) {
+        shareBonusPerYear = _shareBonusPerYear;
+        shareBonusPer1MToken = _shareBonusPer1MToken;
+        emit SetShareBonuses(_shareBonusPerYear, _shareBonusPer1MToken);
     }
 
     function _stake(address user, uint256 amount, uint256 lockDays) internal nonReentrant {
@@ -82,7 +93,7 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
         users[user].push(Stake({
             amount: amount,
             shares: shares,
-            lockTime: uint48(block.timestamp),
+            lockTime: block.timestamp,
             lockDays: lockDays,
             unstakedTime: 0,
             __gap1: 0,
