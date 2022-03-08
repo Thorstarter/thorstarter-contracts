@@ -657,9 +657,9 @@
         }
       }
     },
-    "6a766405a3c8c53d74ffbb7dcbca379b730ef4ca99c9bb0465b779e6c2c8c1db": {
+    "d20c0a13cd21fcca95f6c8080dfc07ca4aa3ac07720822966fa9bc3b85241214": {
       "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-      "txHash": "0x3ef0aa259bcfe1f94a8768234c4ba02e366f6e0b0833aca414bb0c8fced47747",
+      "txHash": "0x85807f74da7227ef8984c7077ea1d8a5d802d71ff327d445fef8c5185d70da03",
       "layout": {
         "storage": [
           {
@@ -719,7 +719,7 @@
           {
             "contract": "ERC20Vote",
             "label": "checkpoints",
-            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Checkpoint)22035_storage))",
+            "type": "t_mapping(t_address,t_mapping(t_uint256,t_struct(Checkpoint)22338_storage))",
             "src": "contracts/vendor/ERC20Vote.sol:47"
           },
           {
@@ -786,74 +786,83 @@
             "contract": "ForgeV1",
             "label": "paused",
             "type": "t_bool",
-            "src": "contracts/ForgeV1.sol:24"
+            "src": "contracts/ForgeV1.sol:26"
+          },
+          {
+            "contract": "ForgeV1",
+            "label": "unlockFeeRecipient",
+            "type": "t_address",
+            "src": "contracts/ForgeV1.sol:27"
           },
           {
             "contract": "ForgeV1",
             "label": "token",
             "type": "t_contract(IERC20Upgradeable)589",
-            "src": "contracts/ForgeV1.sol:25"
+            "src": "contracts/ForgeV1.sol:28"
+          },
+          {
+            "contract": "ForgeV1",
+            "label": "allUsers",
+            "type": "t_array(t_address)dyn_storage",
+            "src": "contracts/ForgeV1.sol:29"
           },
           {
             "contract": "ForgeV1",
             "label": "users",
-            "type": "t_mapping(t_address,t_array(t_struct(Stake)9070_storage)dyn_storage)",
-            "src": "contracts/ForgeV1.sol:26"
-          },
-          {
-            "contract": "ForgeV1",
-            "label": "totalUsers",
-            "type": "t_uint256",
-            "src": "contracts/ForgeV1.sol:27"
+            "type": "t_mapping(t_address,t_array(t_struct(Stake)9074_storage)dyn_storage)",
+            "src": "contracts/ForgeV1.sol:30"
           },
           {
             "contract": "ForgeV1",
             "label": "lockDaysMin",
             "type": "t_uint256",
-            "src": "contracts/ForgeV1.sol:28"
+            "src": "contracts/ForgeV1.sol:31"
           },
           {
             "contract": "ForgeV1",
             "label": "lockDaysMax",
             "type": "t_uint256",
-            "src": "contracts/ForgeV1.sol:29"
+            "src": "contracts/ForgeV1.sol:32"
           },
           {
             "contract": "ForgeV1",
             "label": "shareBonusPerYear",
             "type": "t_uint256",
-            "src": "contracts/ForgeV1.sol:30"
+            "src": "contracts/ForgeV1.sol:33"
           },
           {
             "contract": "ForgeV1",
             "label": "shareBonusPer1MToken",
             "type": "t_uint256",
-            "src": "contracts/ForgeV1.sol:31"
+            "src": "contracts/ForgeV1.sol:34"
           },
           {
             "contract": "ForgeV1",
             "label": "__gap",
             "type": "t_array(t_uint256)50_storage",
-            "src": "contracts/ForgeV1.sol:32"
+            "src": "contracts/ForgeV1.sol:35"
           }
         ],
         "types": {
           "t_bool": {
             "label": "bool"
           },
-          "t_contract(IERC20Upgradeable)589": {
-            "label": "contract IERC20Upgradeable"
-          },
-          "t_mapping(t_address,t_array(t_struct(Stake)9070_storage)dyn_storage)": {
-            "label": "mapping(address => struct ForgeV1.Stake[])"
-          },
           "t_address": {
             "label": "address"
           },
-          "t_array(t_struct(Stake)9070_storage)dyn_storage": {
+          "t_contract(IERC20Upgradeable)589": {
+            "label": "contract IERC20Upgradeable"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]"
+          },
+          "t_mapping(t_address,t_array(t_struct(Stake)9074_storage)dyn_storage)": {
+            "label": "mapping(address => struct ForgeV1.Stake[])"
+          },
+          "t_array(t_struct(Stake)9074_storage)dyn_storage": {
             "label": "struct ForgeV1.Stake[]"
           },
-          "t_struct(Stake)9070_storage": {
+          "t_struct(Stake)9074_storage": {
             "label": "struct ForgeV1.Stake",
             "members": [
               {
@@ -874,6 +883,14 @@
               },
               {
                 "label": "unstakedTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "__gap1",
+                "type": "t_uint256"
+              },
+              {
+                "label": "__gap2",
                 "type": "t_uint256"
               }
             ]
@@ -924,13 +941,13 @@
           "t_mapping(t_address,t_address)": {
             "label": "mapping(address => address)"
           },
-          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Checkpoint)22035_storage))": {
+          "t_mapping(t_address,t_mapping(t_uint256,t_struct(Checkpoint)22338_storage))": {
             "label": "mapping(address => mapping(uint256 => struct ERC20Vote.Checkpoint))"
           },
-          "t_mapping(t_uint256,t_struct(Checkpoint)22035_storage)": {
+          "t_mapping(t_uint256,t_struct(Checkpoint)22338_storage)": {
             "label": "mapping(uint256 => struct ERC20Vote.Checkpoint)"
           },
-          "t_struct(Checkpoint)22035_storage": {
+          "t_struct(Checkpoint)22338_storage": {
             "label": "struct ERC20Vote.Checkpoint",
             "members": [
               {

@@ -26,8 +26,8 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
     bool public paused;
     address public unlockFeeRecipient;
     IERC20Upgradeable public token;
+    address[] public allUsers;
     mapping(address => Stake[]) public users;
-    uint256 public totalUsers;
     uint256 public lockDaysMin;
     uint256 public lockDaysMax;
     uint256 public shareBonusPerYear;
@@ -75,7 +75,7 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
         require(lockDays >= lockDaysMin && lockDays <= lockDaysMax, "invalid lockDays");
 
         if (users[user].length == 0) {
-            totalUsers += 1;
+            allUsers.push(user);
         }
 
         (uint256 shares,) = calculateShares(amount, lockDays);
@@ -137,6 +137,34 @@ contract ForgeV1 is Initializable, ERC20Vote, ReentrancyGuardUpgradeable, Access
         token.safeTransfer(unlockFeeRecipient, stakeRef.amount - returned);
 
         emit UnstakedEarly(msg.sender, stakeIndex, stakeRef.amount, returned);
+    }
+
+    function usersLength() public view returns (uint256) {
+        return allUsers.length;
+    }
+
+    function usersPage(uint page, uint pageSize) external view returns (address[] memory) {
+        address[] memory list = new address[](pageSize);
+        for (uint i = page * pageSize; i < (page + 1) * pageSize && i < allUsers.length; i++) {
+            list[i-(page*pageSize)] = allUsers[i];
+        }
+        return list;
+    }
+
+    function userStakes(address user, uint page, uint pageSize) external view returns (uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory, uint256[] memory) {
+        uint256[] memory amounts = new uint256[](pageSize);
+        uint256[] memory shares = new uint256[](pageSize);
+        uint256[] memory lockTimes = new uint256[](pageSize);
+        uint256[] memory lockDays = new uint256[](pageSize);
+        uint256[] memory unstakedTimes = new uint256[](pageSize);
+        for (uint i = page * pageSize; i < (page + 1) * pageSize && i < users[user].length; i++) {
+            amounts[i-(page*pageSize)] = users[user][i].amount;
+            shares[i-(page*pageSize)] = users[user][i].shares;
+            lockTimes[i-(page*pageSize)] = users[user][i].lockTime;
+            lockDays[i-(page*pageSize)] = users[user][i].lockDays;
+            unstakedTimes[i-(page*pageSize)] = users[user][i].unstakedTime;
+        }
+        return (amounts, shares, lockTimes, lockDays, unstakedTimes);
     }
 
     function calculateShares(
