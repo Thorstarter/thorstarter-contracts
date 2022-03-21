@@ -23,6 +23,7 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
     uint public endTime;
     uint public offeringAmount;
     uint public raisingAmount;
+    uint public vestingStart;
     uint public vestingInitial; // 1e12 = 100%
     uint public vestingDuration;
     bool public paused;
@@ -35,7 +36,7 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
 
     event SetTokens(address payment, address offering);
     event SetAmounts(uint offering, uint raising);
-    event SetVesting(uint initial, uint duration);
+    event SetVesting(uint start, uint initial, uint duration);
     event SetTimes(uint start, uint end);
     event SetMerkleRoot(bytes32 merkleRoot);
     event SetPaused(bool paused);
@@ -53,6 +54,7 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         uint _endTime,
         uint _offeringAmount,
         uint _raisingAmount,
+        uint _vestingStart,
         uint _vestingInitial,
         uint _vestingDuration
     ) Ownable() {
@@ -63,6 +65,7 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         endTime = _endTime;
         offeringAmount = _offeringAmount;
         raisingAmount = _raisingAmount;
+        vestingStart = _vestingStart;
         vestingInitial = _vestingInitial;
         vestingDuration = _vestingDuration;
         fcfsAllocation = (raisingAmount * 1000 / 1000000);
@@ -75,7 +78,7 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         require(_vestingDuration < 365 days, "vesting duration < 1 year");
         emit SetTokens(_paymentToken, _offeringToken);
         emit SetAmounts(_offeringAmount, _raisingAmount);
-        emit SetVesting(_vestingInitial, _vestingDuration);
+        emit SetVesting(_vestingStart, _vestingInitial, _vestingDuration);
     }
 
     function setTokens(address payment, address offering) external onlyOwner {
@@ -90,10 +93,11 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
         emit SetAmounts(offering, raising);
     }
 
-    function setVesting(uint initial, uint duration) external onlyOwner {
+    function setVesting(uint start, uint initial, uint duration) external onlyOwner {
+        vestingStart = start;
         vestingInitial = initial;
         vestingDuration = duration;
-        emit SetVesting(initial, duration);
+        emit SetVesting(start, initial, duration);
     }
 
     function setTimes(uint _startTime, uint _endTime) external onlyOwner {
@@ -134,12 +138,9 @@ contract SaleTiers is IERC677Receiver, Ownable, ReentrancyGuard {
     function getUserInfo(address _user) public view returns (uint, uint, uint, uint) {
         UserInfo memory userInfo = userInfos[_user];
         uint owed = (userInfo.amount * offeringAmount) / raisingAmount;
-        //uint progress = _min(block.timestamp - _min(block.timestamp, endTime), vestingDuration);
+        uint progress = _min(block.timestamp - _min(block.timestamp, vestingStart), vestingDuration);
         uint claimable = (owed * vestingInitial) / 1e12;
-        //claimable += ((owed - claimable) * progress) / vestingDuration;
-        if (block.timestamp > endTime + vestingDuration) {
-            claimable = owed;
-        }
+        claimable += ((owed - claimable) * progress) / vestingDuration;
         return (userInfo.amount, userInfo.claimed, owed, claimable);
     }
 
