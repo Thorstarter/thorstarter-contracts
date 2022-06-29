@@ -32,7 +32,10 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     uint public totalUsers;
     uint public totalScore;
     uint public totalAmount;
+    uint public finalizedBaseAmount;
+
     mapping(address => UserInfo) public userInfos;
+    mapping(uint => address) userIndex;
 
     event SetTokens(address payment, address offering);
     event SetAmounts(uint offering, uint raising);
@@ -40,7 +43,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     event SetTimes(uint start, uint end);
     event SetServerSigner(address serverSigner);
     event SetPaused(bool paused);
-    event SetFinalized();
+    event SetFinalized(uint finalizedBaseAmount);
     event Deposit(address indexed user, uint amount);
     event Harvest(address indexed user, uint amount);
 
@@ -113,27 +116,21 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         emit SetPaused(_paused);
     }
 
-    function setFinalized() external onlyOwner {
-        // TODO also save finalizedBaseAmount
+    function setFinalized(uint _finalizedBaseAmount) external onlyOwner {
+        finalizedBaseAmount = _finalizedBaseAmount;
         finalized = true;
-        emit SetFinalized();
+        emit SetFinalized(_finalizedBaseAmount);
     }
 
     function getParams() external view returns (uint, uint, uint, uint, uint, bool, bool) {
         return (startTime, endTime, raisingAmount, offeringAmount, totalAmount, paused, finalized);
     }
 
-    function getUserInfo(address _user) public view returns (uint, uint, uint, uint) {
+    function getUserInfo(address _user) public view returns (uint, uint, uint, uint, uint) {
         UserInfo memory userInfo = userInfos[_user];
 
-        // 1. Fetch all participants from chain (score + deposit amount)
-        // 2. 50% of the sale raising (we will use raising amount to calculate the offering amount to give) amount is split between all participants proportional to their "score" (offering * participant score / total score)
-        //   For this step we need to calculate each participant's allocation based on score and, for participant that deposited less funds than allocation, take the extra/surplus allocation and add it to the other 50% of tokens to be distributed evenly
-        // 3. We want to figure out the flat/single amount to give to every participant but we need to take into account participants that deposited less than might get allocated to them
-        //   So starting with a base amount of 0, increase the by 0.001 (or some small enough step), add all participants allocations up (min(deposit amount, amount from step 2 + base amount), while we're still under to total raising amount, increate base amount by one step
-
-        uint capHalf = (userInfo.score * raisingAmount) / totalScore;
-        uint cap = capHalf + finalizedBaseAmount; // TODO
+        uint capHalf = (userInfo.score * (raisingAmount / 2)) / totalScore;
+        uint cap = capHalf + finalizedBaseAmount;
         uint used = _min(userInfo.amount, cap);
         uint refund = userInfo.amount - used;
         uint owed = (used * offeringAmount) / totalAmount;
@@ -142,6 +139,17 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         uint claimable = (owed * vestingInitial) / 1e12;
         claimable += ((owed - claimable) * progress) / vestingDuration;
         return (userInfo.amount, userInfo.claimed, owed, claimable, refund);
+    }
+
+    function getAllUserInfo() external view returns (uint[2][] memory) {
+      uint[2][] memory allUserData = new uint[2][](totalUsers);
+
+      for (uint i = 0; i < totalUsers; i++) {
+        allUserData[i][0] = userInfos[userIndex[i]].amount;
+        allUserData[i][1] = userInfos[userIndex[i]].score;
+      }
+
+      return allUserData;
     }
 
     function _deposit(address user, uint amount, uint score, bytes memory signature) internal nonReentrant {
@@ -153,8 +161,8 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         address signer = ECDSA.recover(hash, signature);
         require(signer == serverSigner, "invalid signature");
 
-
         if (userInfo.amount == 0) {
+            userIndex[totalUsers] = user;
             totalUsers += 1;
             userInfo.score = score;
             totalScore = totalScore + score;
@@ -182,7 +190,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     }
 
     function harvest() external nonReentrant {
-        (uint contributed, uint claimed, , uint claimable) = getUserInfo(msg.sender);
+        (uint contributed, uint claimed, , uint claimable,) = getUserInfo(msg.sender);
 
         require(!paused, "paused");
         require(block.timestamp > endTime, "sale not ended");
