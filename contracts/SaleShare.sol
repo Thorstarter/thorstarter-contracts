@@ -141,12 +141,12 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         return (userInfo.amount, userInfo.claimed, owed, claimable, refund);
     }
 
-    function getAllUserInfo() external view returns (uint[2][] memory) {
-      uint[2][] memory allUserData = new uint[2][](totalUsers);
+    function getAllUserInfo(uint page, uint pageSize) external view returns (uint[2][] memory) {
+      uint[2][] memory allUserData = new uint[2][](pageSize);
 
-      for (uint i = 0; i < totalUsers; i++) {
-        allUserData[i][0] = userInfos[userIndex[i]].amount;
-        allUserData[i][1] = userInfos[userIndex[i]].score;
+      for (uint i = page * pageSize; i < (page + 1) * pageSize && i < totalUsers; i++) {
+        allUserData[i-(page*pageSize)][0] = userInfos[userIndex[i]].amount;
+        allUserData[i-(page*pageSize)][1] = userInfos[userIndex[i]].score;
       }
 
       return allUserData;
