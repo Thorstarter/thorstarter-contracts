@@ -129,7 +129,12 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     function getUserInfo(address _user) public view returns (uint, uint, uint, uint, uint) {
         UserInfo memory userInfo = userInfos[_user];
 
+        if (totalAmount == 0) {
+          return (0, 0, 0, 0, 0);
+        }
+
         uint capHalf = (userInfo.score * (raisingAmount / 2)) / totalScore;
+
         uint cap = capHalf + finalizedBaseAmount;
         uint used = _min(userInfo.amount, cap);
         uint refund = userInfo.amount - used;
@@ -138,6 +143,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         uint progress = _min(block.timestamp - _min(block.timestamp, vestingStart), vestingDuration);
         uint claimable = (owed * vestingInitial) / 1e12;
         claimable += ((owed - claimable) * progress) / vestingDuration;
+
         return (userInfo.amount, userInfo.claimed, owed, claimable, refund);
     }
 

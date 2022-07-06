@@ -40,8 +40,12 @@ describe("SaleShare", function() {
     await this.offeringToken.transfer(this.sale.address, bn("2000"));
     await this.paymentToken.approve(this.sale.address, bn("100"));
     await this.paymentToken.transfer(this.signers[1].address, bn("100"));
+    await this.paymentToken.transfer(this.signers[2].address, bn("100"));
     await this.paymentToken
       .connect(this.signers[1])
+      .approve(this.sale.address, bn("100"));
+    await this.paymentToken
+      .connect(this.signers[2])
       .approve(this.sale.address, bn("100"));
   });
 
@@ -75,6 +79,41 @@ describe("SaleShare", function() {
     expect(await this.sale.paused()).to.equal(true);
   });
 
+  it("setFinalized", async function() {
+    expect(await this.sale.finalized()).to.equal(false);
+
+    await this.sale.setFinalized(bn("25"));
+
+    expect(await this.sale.finalized()).to.equal(true);
+    expect(await this.sale.finalizedBaseAmount()).to.equal(bn("25"));
+  });
+
+  it("getAllUserInfo", async function() {
+    const score = bn("23000", 0);
+    await advanceToTime(this.start + 1001);
+
+    const signature = await signDeposit(this.signers[3], this.signer, score);
+    const signature2 = await signDeposit(this.signers[3], this.signers[1], score);
+    const signature3 = await signDeposit(this.signers[3], this.signers[2], score);
+
+    await this.sale.deposit(bn("5"), score, signature);
+    await this.sale
+      .connect(this.signers[1])
+      .deposit(bn("6"), score, signature2);
+    await this.sale
+      .connect(this.signers[2])
+      .deposit(bn("7"), score, signature3);
+
+    let userData = await this.sale.getAllUserInfo(0, 2);
+
+    expect(userData[0][0]).to.equal(bn("5"));
+    expect(userData[1][0]).to.equal(bn("6"));
+
+    userData = await this.sale.getAllUserInfo(1, 2);
+
+    expect(userData[0][0]).to.equal(bn("7"));
+  });
+
   it("deposit", async function() {
     const score = bn("23000", 0);
     const signature = await signDeposit(this.signers[3], this.signer, score);
@@ -87,7 +126,7 @@ describe("SaleShare", function() {
 
     let userInfo = await this.sale.getUserInfo(this.signer.address);
     expect(userInfo[0]).to.equal(bn("50"));
-    expect(userInfo[2]).to.equal(bn("250"));
+    expect(userInfo[2]).to.equal(bn("500"));
     expect(await this.sale.totalUsers()).to.equal(1);
     expect(await this.sale.totalScore()).to.equal(score);
     expect(await this.sale.totalAmount()).to.equal(bn("50"));
@@ -95,7 +134,7 @@ describe("SaleShare", function() {
     await this.sale.deposit(bn("1"), score, signature);
     userInfo = await this.sale.getUserInfo(this.signer.address);
     expect(userInfo[0]).to.equal(bn("51"));
-    expect(userInfo[2]).to.equal(bn("255"));
+    expect(userInfo[2]).to.equal(bn("50").mul(bn("500")).div(bn("51")));
     expect(await this.sale.totalUsers()).to.equal(1);
     expect(await this.sale.totalScore()).to.equal(score);
     expect(await this.sale.totalAmount()).to.equal(bn("51"));
@@ -116,9 +155,25 @@ describe("SaleShare", function() {
       this.signers[1],
       score
     );
+
     await this.sale
       .connect(this.signers[1])
       .deposit(bn("9"), score, signature2);
+
+    userInfo = await this.sale.getUserInfo(this.signer.address);
+    expect(userInfo[2]).to.equal(bn("25").mul(bn("500")).div(bn("60")));
+
+    let userInfo2 = await this.sale.getUserInfo(this.signers[1].address);
+    expect(userInfo2[0]).to.equal(bn("9"));
+    expect(userInfo2[2]).to.equal(bn("9").mul(bn("500")).div(bn("60")));
+
+    await this.sale.setFinalized(bn("26"));
+
+    userInfo = await this.sale.getUserInfo(this.signer.address);
+    expect(userInfo[2]).to.equal(bn("51").mul(bn("500")).div(bn("60")));
+
+    userInfo2 = await this.sale.getUserInfo(this.signers[1].address);
+    expect(userInfo2[2]).to.equal(bn("9").mul(bn("500")).div(bn("60")));
 
     await this.sale.setPaused(true);
     await expectError("paused", async () => {
@@ -137,11 +192,22 @@ describe("SaleShare", function() {
     );
     const score = bn("23000", 0);
     const signature = await signDeposit(this.signers[3], this.signer, score);
-    await this.sale.deposit(bn("90"), score, signature);
+    const signature2 = await signDeposit(
+      this.signers[3],
+      this.signers[1],
+      score
+    );
+
+    await this.sale.deposit(bn("51"), score, signature);
+    await this.sale
+      .connect(this.signers[1])
+      .deposit(bn("9"), score, signature2);
+
     let balanceAfter = await this.paymentToken.balanceOf(
       this.signers[0].address
     );
-    expect(balanceBefore.sub(balanceAfter).gte(bn("90"))).to.equal(true);
+
+    expect(balanceBefore.sub(balanceAfter).gte(bn("51"))).to.equal(true);
     await advanceToTime(this.start + 5001);
 
     await expectError("not finalized", async () => {
@@ -149,47 +215,43 @@ describe("SaleShare", function() {
     });
 
     balanceBefore = await this.offeringToken.balanceOf(this.signer.address);
-    await this.sale.setFinalized();
+
+    await this.sale.setFinalized(bn("26"));
     await this.sale.harvest();
+
     balanceAfter = await this.offeringToken.balanceOf(this.signer.address);
-    expect(balanceAfter.sub(balanceBefore)).to.equal(bn("45"));
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn("42.5"));
 
     let userInfo = await this.sale.getUserInfo(this.signer.address);
-    expect(userInfo[3]).to.equal(bn("45"));
+    expect(userInfo[3]).to.equal(bn("42.5"));
     expect(userInfo[3].sub(userInfo[1])).to.equal(bn("0"));
 
     await advanceToTime(this.start + 10001 + 300);
-    //await this.signer.sendTransaction({ to: this.signer.address, value: bn("1") });
     userInfo = await this.sale.getUserInfo(this.signer.address);
-    expect(userInfo[3]).to.equal(bn("450"));
+    expect(userInfo[3]).to.equal(bn("425"));
 
     balanceBefore = await this.offeringToken.balanceOf(this.signer.address);
     await this.sale.harvest();
     balanceAfter = await this.offeringToken.balanceOf(this.signer.address);
-    expect(balanceAfter.sub(balanceBefore)).to.equal(bn("405"));
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn("382.5"));
+
     userInfo = await this.sale.getUserInfo(this.signer.address);
-    expect(userInfo[0]).to.equal(bn("90"));
-    expect(userInfo[1]).to.equal(bn("450"));
-    expect(userInfo[2]).to.equal(bn("450"));
-    expect(userInfo[3]).to.equal(bn("450"));
+
+    expect(userInfo[0]).to.equal(bn("51"));
+    expect(userInfo[1]).to.equal(bn("425"));
+    expect(userInfo[2]).to.equal(bn("425"));
+    expect(userInfo[3]).to.equal(bn("425"));
+    expect(userInfo[4]).to.equal(bn("0"));
 
     await expectError("no amount available for claiming", async () => {
       await this.sale.harvest();
     });
     await expectError("have you participated?", async () => {
-      await this.sale.connect(this.signers[1]).harvest();
+      await this.sale.connect(this.signers[2]).harvest();
     });
   });
 
   it("withdrawToken", async function() {
-    // ETH
-    // await advanceToTime(this.start + 1001);
-    // await this.sale.deposit(bn("90"), this.proofs[0], { value: bn("90") });
-    // let balanceBefore = await this.signer.getBalance();
-    // await this.sale.withdrawToken(ADDRESS_ZERO, bn("2.5"));
-    // let balanceAfter = await this.signer.getBalance();
-    // expect(balanceAfter.sub(balanceBefore).gt(bn("2.49"))).to.equal(true);
-
     // Token
     await this.offeringToken.transfer(this.sale.address, bn("2"));
     balanceBefore = await this.offeringToken.balanceOf(this.signer.address);
