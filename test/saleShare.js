@@ -10,7 +10,7 @@ const {
   ADDRESS_ZERO
 } = require("./utilities");
 
-describe("SaleShare", function() {
+describe.only("SaleShare", function() {
   beforeEach(async function() {
     await deployRegistry();
     this.signers = await ethers.getSigners();
@@ -82,10 +82,11 @@ describe("SaleShare", function() {
   it("setFinalized", async function() {
     expect(await this.sale.finalized()).to.equal(false);
 
-    await this.sale.setFinalized(bn("25"));
+    await this.sale.setFinalized(bn("25"), bn("100"));
 
     expect(await this.sale.finalized()).to.equal(true);
     expect(await this.sale.finalizedBaseAmount()).to.equal(bn("25"));
+    expect(await this.sale.finalizedTotalAmount()).to.equal(bn("100"));
   });
 
   it("getAllUserInfo", async function() {
@@ -126,7 +127,6 @@ describe("SaleShare", function() {
 
     let userInfo = await this.sale.getUserInfo(this.signer.address);
     expect(userInfo[0]).to.equal(bn("50"));
-    expect(userInfo[2]).to.equal(bn("500"));
     expect(await this.sale.totalUsers()).to.equal(1);
     expect(await this.sale.totalScore()).to.equal(score);
     expect(await this.sale.totalAmount()).to.equal(bn("50"));
@@ -134,7 +134,6 @@ describe("SaleShare", function() {
     await this.sale.deposit(bn("1"), score, signature);
     userInfo = await this.sale.getUserInfo(this.signer.address);
     expect(userInfo[0]).to.equal(bn("51"));
-    expect(userInfo[2]).to.equal(bn("50").mul(bn("500")).div(bn("51")));
     expect(await this.sale.totalUsers()).to.equal(1);
     expect(await this.sale.totalScore()).to.equal(score);
     expect(await this.sale.totalAmount()).to.equal(bn("51"));
@@ -160,14 +159,7 @@ describe("SaleShare", function() {
       .connect(this.signers[1])
       .deposit(bn("9"), score, signature2);
 
-    userInfo = await this.sale.getUserInfo(this.signer.address);
-    expect(userInfo[2]).to.equal(bn("25").mul(bn("500")).div(bn("60")));
-
-    let userInfo2 = await this.sale.getUserInfo(this.signers[1].address);
-    expect(userInfo2[0]).to.equal(bn("9"));
-    expect(userInfo2[2]).to.equal(bn("9").mul(bn("500")).div(bn("60")));
-
-    await this.sale.setFinalized(bn("26"));
+    await this.sale.setFinalized(bn("26"), bn("60"));
 
     userInfo = await this.sale.getUserInfo(this.signer.address);
     expect(userInfo[2]).to.equal(bn("51").mul(bn("500")).div(bn("60")));
@@ -216,7 +208,7 @@ describe("SaleShare", function() {
 
     balanceBefore = await this.offeringToken.balanceOf(this.signer.address);
 
-    await this.sale.setFinalized(bn("26"));
+    await this.sale.setFinalized(bn("26"), bn("60"));
     await this.sale.harvest();
 
     balanceAfter = await this.offeringToken.balanceOf(this.signer.address);
@@ -249,6 +241,110 @@ describe("SaleShare", function() {
     await expectError("have you participated?", async () => {
       await this.sale.connect(this.signers[2]).harvest();
     });
+  });
+
+  it("harvestRefund", async function() {
+    await expectError("sale not ended", async () => {
+      await this.sale.harvestRefund();
+    });
+
+    await advanceToTime(this.start + 1001);
+    const score = bn("23000", 0);
+    const signature = await signDeposit(this.signers[3], this.signer, score);
+    const signature2 = await signDeposit(
+      this.signers[3],
+      this.signers[1],
+      score
+    );
+
+    await this.sale.deposit(bn("100"), score, signature);
+    await this.sale
+      .connect(this.signers[1])
+      .deposit(bn("20"), score, signature2);
+
+    await advanceToTime(this.start + 5001);
+
+    await expectError("not finalized", async () => {
+      await this.sale.harvestRefund();
+    });
+
+    await this.sale.setFinalized(bn("55"), bn("100"));
+    await advanceToTime(this.start + 10001 + 300);
+
+    // first user - gets a refund
+    let balanceBefore = await this.paymentToken.balanceOf(this.signer.address);
+    await this.sale.harvestRefund();
+    let balanceAfter = await this.paymentToken.balanceOf(this.signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn("20"));
+
+    balanceBefore = await this.offeringToken.balanceOf(this.signer.address);
+    await this.sale.harvest();
+    balanceAfter = await this.offeringToken.balanceOf(this.signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn("400"));
+
+    // second user - doesn't get a refund
+    balanceBefore = await this.paymentToken.balanceOf(this.signers[1].address);
+    await this.sale.connect(this.signers[1]).harvestRefund();
+    balanceAfter = await this.paymentToken.balanceOf(this.signers[1].address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn("0"));
+
+    balanceBefore = await this.offeringToken.balanceOf(this.signers[1].address);
+    await this.sale.connect(this.signers[1]).harvest();
+    balanceAfter = await this.offeringToken.balanceOf(this.signers[1].address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(bn("100"));
+  });
+
+  it("harvestAll", async function() {
+    await expectError("sale not ended", async () => {
+      await this.sale.harvestAll();
+    });
+
+    await advanceToTime(this.start + 1001);
+    const score = bn("23000", 0);
+    const signature = await signDeposit(this.signers[3], this.signer, score);
+    const signature2 = await signDeposit(
+      this.signers[3],
+      this.signers[1],
+      score
+    );
+
+    await this.sale.deposit(bn("100"), score, signature);
+    await this.sale
+      .connect(this.signers[1])
+      .deposit(bn("20"), score, signature2);
+
+    await advanceToTime(this.start + 5001);
+
+    await expectError("not finalized", async () => {
+      await this.sale.harvestRefund();
+    });
+
+    await this.sale.setFinalized(bn("55"), bn("100"));
+    await advanceToTime(this.start + 10001 + 300);
+
+    // first user - gets a refund
+    let paymentTokenBalanceBefore = await this.paymentToken.balanceOf(this.signer.address);
+    let offeringTokenBalanceBefore = await this.offeringToken.balanceOf(this.signer.address);
+
+    await this.sale.harvestAll();
+
+    let paymentTokenBalanceAfter = await this.paymentToken.balanceOf(this.signer.address);
+    let offeringTokenBalanceAfter = await this.offeringToken.balanceOf(this.signer.address);
+
+    expect(paymentTokenBalanceAfter.sub(paymentTokenBalanceBefore)).to.equal(bn("20"));
+    expect(offeringTokenBalanceAfter.sub(offeringTokenBalanceBefore)).to.equal(bn("400"));
+
+    // second user - doesn't get a refund
+    paymentTokenBalanceBefore = await this.paymentToken.balanceOf(this.signers[1].address);
+    offeringTokenBalanceBefore = await this.offeringToken.balanceOf(this.signers[1].address);
+
+    await this.sale.connect(this.signers[1]).harvestAll();
+
+    paymentTokenBalanceAfter = await this.paymentToken.balanceOf(this.signers[1].address);
+    offeringTokenBalanceAfter = await this.offeringToken.balanceOf(this.signers[1].address);
+
+    expect(paymentTokenBalanceAfter.sub(paymentTokenBalanceBefore)).to.equal(bn("0"));
+    expect(offeringTokenBalanceAfter.sub(offeringTokenBalanceBefore)).to.equal(bn("100"));
   });
 
   it("withdrawToken", async function() {

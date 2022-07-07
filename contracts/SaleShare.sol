@@ -15,6 +15,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         uint amount;
         uint score;
         uint claimed;
+        bool claimedRefund;
     }
 
     IERC20 public paymentToken;
@@ -33,6 +34,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     uint public totalScore;
     uint public totalAmount;
     uint public finalizedBaseAmount;
+    uint public finalizedTotalAmount;
 
     mapping(address => UserInfo) public userInfos;
     mapping(uint => address) userIndex;
@@ -46,6 +48,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     event SetFinalized(uint finalizedBaseAmount);
     event Deposit(address indexed user, uint amount);
     event Harvest(address indexed user, uint amount);
+    event HarvestRefund(address indexed user, uint amount);
 
     constructor(
         address _paymentToken,
@@ -116,20 +119,21 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         emit SetPaused(_paused);
     }
 
-    function setFinalized(uint _finalizedBaseAmount) external onlyOwner {
+    function setFinalized(uint _finalizedBaseAmount, uint _finalizedTotalAmount) external onlyOwner {
         finalizedBaseAmount = _finalizedBaseAmount;
+        finalizedTotalAmount = _finalizedTotalAmount;
         finalized = true;
         emit SetFinalized(_finalizedBaseAmount);
     }
 
-    function getParams() external view returns (uint, uint, uint, uint, uint, bool, bool) {
-        return (startTime, endTime, raisingAmount, offeringAmount, totalAmount, paused, finalized);
+    function getParams() external view returns (uint, uint, uint, uint, uint, bool, bool, uint) {
+        return (startTime, endTime, raisingAmount, offeringAmount, totalAmount, paused, finalized, finalizedTotalAmount);
     }
 
     function getUserInfo(address _user) public view returns (uint, uint, uint, uint, uint) {
         UserInfo memory userInfo = userInfos[_user];
 
-        if (totalAmount == 0) {
+        if (finalizedTotalAmount == 0) {
           return (userInfo.amount, 0, 0, 0, 0);
         }
 
@@ -138,7 +142,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         uint cap = capHalf + finalizedBaseAmount;
         uint used = _min(userInfo.amount, cap);
         uint refund = userInfo.amount - used;
-        uint owed = (used * offeringAmount) / totalAmount;
+        uint owed = (used * offeringAmount) / finalizedTotalAmount;
 
         uint progress = _min(block.timestamp - _min(block.timestamp, vestingStart), vestingDuration);
         uint claimable = (owed * vestingInitial) / 1e12;
@@ -195,7 +199,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         _deposit(user, amount, score, signature);
     }
 
-    function harvest() external nonReentrant {
+    function harvest() public nonReentrant {
         (uint contributed, uint claimed, , uint claimable,) = getUserInfo(msg.sender);
 
         require(!paused, "paused");
@@ -209,6 +213,28 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         userInfos[msg.sender].claimed += amount;
         offeringToken.safeTransfer(address(msg.sender), amount);
         emit Harvest(msg.sender, amount);
+    }
+
+    function harvestRefund() public nonReentrant {
+        (uint contributed, , , , uint refund) = getUserInfo(msg.sender);
+
+        require(!paused, "paused");
+        require(block.timestamp > endTime, "sale not ended");
+        require(finalized, "not finalized");
+        require(contributed > 0, "have you participated?");
+        require(!userInfos[msg.sender].claimedRefund, "nothing to harvest");
+
+        userInfos[msg.sender].claimedRefund = true;
+
+        if (refund > 0) {
+            paymentToken.safeTransfer(address(msg.sender), refund);
+        }
+        emit HarvestRefund(msg.sender, refund);
+    }
+
+    function harvestAll() public {
+        harvestRefund();
+        harvest();
     }
 
     function withdrawToken(address token, uint amount) external onlyOwner {
