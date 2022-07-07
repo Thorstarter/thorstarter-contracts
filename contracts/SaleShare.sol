@@ -130,7 +130,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         UserInfo memory userInfo = userInfos[_user];
 
         if (totalAmount == 0) {
-          return (0, 0, 0, 0, 0);
+          return (userInfo.amount, 0, 0, 0, 0);
         }
 
         uint capHalf = (userInfo.score * (raisingAmount / 2)) / totalScore;
