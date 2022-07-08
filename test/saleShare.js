@@ -10,7 +10,7 @@ const {
   ADDRESS_ZERO
 } = require("./utilities");
 
-describe.only("SaleShare", function() {
+describe("SaleShare", function() {
   beforeEach(async function() {
     await deployRegistry();
     this.signers = await ethers.getSigners();
