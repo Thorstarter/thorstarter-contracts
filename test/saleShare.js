@@ -49,12 +49,12 @@ describe("SaleShare", function() {
       .approve(this.sale.address, bn("100"));
   });
 
-  function signDeposit(serverSigner, user, score) {
+  function signDeposit(serverSigner, user, score, deadline) {
     return serverSigner.signMessage(
       ethers.utils.arrayify(
         ethers.utils.solidityKeccak256(
-          ["address", "uint"],
-          [user.address, score]
+          ["address", "uint", "uint"],
+          [user.address, score, deadline]
         )
       )
     );
@@ -93,9 +93,9 @@ describe("SaleShare", function() {
     const score = bn("23000", 0);
     await advanceToTime(this.start + 1001);
 
-    const signature = await signDeposit(this.signers[3], this.signer, score);
-    const signature2 = await signDeposit(this.signers[3], this.signers[1], score);
-    const signature3 = await signDeposit(this.signers[3], this.signers[2], score);
+    const signature = await signDeposit(this.signers[3], this.signer, score, this.start + 5000);
+    const signature2 = await signDeposit(this.signers[3], this.signers[1], score, this.start + 5000);
+    const signature3 = await signDeposit(this.signers[3], this.signers[2], score, this.start + 5000);
 
     await this.sale.deposit(bn("5"), score, signature);
     await this.sale
@@ -117,7 +117,7 @@ describe("SaleShare", function() {
 
   it("deposit", async function() {
     const score = bn("23000", 0);
-    const signature = await signDeposit(this.signers[3], this.signer, score);
+    const signature = await signDeposit(this.signers[3], this.signer, score, this.start + 5000);
     await expectError("not active", async () => {
       await this.sale.deposit(bn("50"), score, signature);
     });
@@ -152,7 +152,8 @@ describe("SaleShare", function() {
     const signature2 = await signDeposit(
       this.signers[3],
       this.signers[1],
-      score
+      score,
+      this.start + 5000
     );
 
     await this.sale
@@ -183,11 +184,12 @@ describe("SaleShare", function() {
       this.signers[0].address
     );
     const score = bn("23000", 0);
-    const signature = await signDeposit(this.signers[3], this.signer, score);
+    const signature = await signDeposit(this.signers[3], this.signer, score, this.start + 5000);
     const signature2 = await signDeposit(
       this.signers[3],
       this.signers[1],
-      score
+      score,
+      this.start + 5000
     );
 
     await this.sale.deposit(bn("51"), score, signature);
@@ -250,11 +252,12 @@ describe("SaleShare", function() {
 
     await advanceToTime(this.start + 1001);
     const score = bn("23000", 0);
-    const signature = await signDeposit(this.signers[3], this.signer, score);
+    const signature = await signDeposit(this.signers[3], this.signer, score, this.start + 5000);
     const signature2 = await signDeposit(
       this.signers[3],
       this.signers[1],
-      score
+      score,
+      this.start + 5000
     );
 
     await this.sale.deposit(bn("100"), score, signature);
@@ -301,11 +304,12 @@ describe("SaleShare", function() {
 
     await advanceToTime(this.start + 1001);
     const score = bn("23000", 0);
-    const signature = await signDeposit(this.signers[3], this.signer, score);
+    const signature = await signDeposit(this.signers[3], this.signer, score, this.start + 5000);
     const signature2 = await signDeposit(
       this.signers[3],
       this.signers[1],
-      score
+      score,
+      this.start + 5000
     );
 
     await this.sale.deposit(bn("100"), score, signature);

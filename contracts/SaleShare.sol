@@ -167,7 +167,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         require(!paused, "paused");
         require(amount > 0, "need amount > 0");
         require(block.timestamp >= startTime && block.timestamp <= endTime, "sale not active");
-        bytes32 hash = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(user, score)));
+        bytes32 hash = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(user, score, endTime)));
         address signer = ECDSA.recover(hash, signature);
         require(signer == serverSigner, "invalid signature");
 
