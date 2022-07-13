@@ -130,11 +130,11 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         return (startTime, endTime, raisingAmount, offeringAmount, totalAmount, paused, finalized, finalizedTotalAmount);
     }
 
-    function getUserInfo(address _user) public view returns (uint, uint, uint, uint, uint) {
+    function getUserInfo(address _user) public view returns (uint, uint, uint, uint, uint, bool) {
         UserInfo memory userInfo = userInfos[_user];
 
         if (finalizedTotalAmount == 0) {
-          return (userInfo.amount, 0, 0, 0, 0);
+          return (userInfo.amount, 0, 0, 0, 0, false);
         }
 
         uint capHalf = (userInfo.score * (raisingAmount / 2)) / totalScore;
@@ -148,7 +148,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         uint claimable = (owed * vestingInitial) / 1e12;
         claimable += ((owed - claimable) * progress) / vestingDuration;
 
-        return (userInfo.amount, userInfo.claimed, owed, claimable, refund);
+        return (userInfo.amount, userInfo.claimed, owed, claimable, refund, userInfo.claimedRefund);
     }
 
     function getAllUserInfo(uint page, uint pageSize) external view returns (uint[2][] memory) {
@@ -200,7 +200,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     }
 
     function harvest() public nonReentrant {
-        (uint contributed, uint claimed, , uint claimable,) = getUserInfo(msg.sender);
+        (uint contributed, uint claimed, , uint claimable,,) = getUserInfo(msg.sender);
 
         require(!paused, "paused");
         require(block.timestamp > endTime, "sale not ended");
@@ -216,7 +216,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     }
 
     function harvestRefund() public nonReentrant {
-        (uint contributed, , , , uint refund) = getUserInfo(msg.sender);
+        (uint contributed, , , , uint refund,) = getUserInfo(msg.sender);
 
         require(!paused, "paused");
         require(block.timestamp > endTime, "sale not ended");
