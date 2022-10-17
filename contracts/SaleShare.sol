@@ -122,7 +122,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
     function setFinalized(uint _finalizedBaseAmount, uint _finalizedTotalAmount) external onlyOwner {
         finalizedBaseAmount = _finalizedBaseAmount;
         finalizedTotalAmount = _finalizedTotalAmount;
-        finalized = true;
+        finalized = finalizedBaseAmount > 0;
         emit SetFinalized(_finalizedBaseAmount);
     }
 
@@ -134,7 +134,7 @@ contract SaleShare is IERC677Receiver, Ownable, ReentrancyGuard {
         UserInfo memory userInfo = userInfos[_user];
 
         if (finalizedTotalAmount == 0) {
-          return (userInfo.amount, 0, 0, 0, 0, false);
+            return (userInfo.amount, 0, 0, 0, 0, false);
         }
 
         uint capHalf = (userInfo.score * (raisingAmount / 2)) / totalScore;
