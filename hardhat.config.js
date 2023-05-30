@@ -1,6 +1,7 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
-require("@openzeppelin/hardhat-upgrades");
+//require("@openzeppelin/hardhat-upgrades");
+require("@matterlabs/hardhat-zksync-solc");
 
 require("@nomiclabs/hardhat-solhint");
 require("solidity-coverage");
@@ -10,6 +11,20 @@ if (process.env.GAS_REPORT === "true") {
 }
 
 module.exports = {
+  zksolc: {
+    version: "1.3.10",
+    compilerSource: "binary",
+    settings: {
+      //compilerPath: "zksolc",
+      libraries: {},
+      isSystem: false,
+      forceEvmla: false,
+      optimizer: {
+        enabled: true,
+        mode: "3"
+      }
+    }
+  },
   solidity: {
     compilers: [
       {
@@ -67,6 +82,12 @@ module.exports = {
     },
     bsc: {
       url: "https://bsc-dataseed1.ninicoin.io", // 56
+      accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY]
+    },
+    zksync: {
+      url: "https://mainnet.era.zksync.io",
+      ethNetwork: "mainnet",
+      zksync: true,
       accounts: [process.env.THORSTARTER_DEPLOYER_PRIVATE_KEY]
     }
   },

@@ -43,19 +43,17 @@ require("fs").writeFileSync(
 const parseUnits = ethers.utils.parseUnits;
 
 async function main() {
-  const Contract = await hre.ethers.getContractFactory("SaleShare");
+  const Contract = await hre.ethers.getContractFactory("SaleFcfsSimple");
   const now = (Date.now() / 1000) | 0;
   const args = [
-    "0x07865c6E87B9F70255377e024ace6630C1Eaa37F", // payment token
-    "0x07865c6E87B9F70255377e024ace6630C1Eaa37F", // offering token
-    "0xe33f4f08b2aa308962a603c106b4ce57b1961960", // server signer
-    1658173535, // start time
-    1659210332, // end time
-    parseUnits("25000000"), // offerring amount
-    parseUnits("300000", 6), // raising amount
-    1659210332, // vesting start
-    parseUnits("0.1", 12), // vesting initial
-    parseUnits("7776000", 0) // vesting duration
+    "0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4", // payment token
+    "0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4", // offering token
+    parseUnits("1250000"), // offerring amount
+    parseUnits("75000", 6), // raising amount
+    1685458800, // start time
+    1685545200, // end time
+    parseUnits("0.1", 18), // vesting initial
+    parseUnits("31104000", 0) // vesting duration
   ];
   const contract = await Contract.deploy(...args, {
     //gasLimit: 2500000,

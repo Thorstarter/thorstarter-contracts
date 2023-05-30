@@ -6,3 +6,5 @@ node_modules
 cache
 artifacts
 allocations.json
+artifacts-zk
+zkout
