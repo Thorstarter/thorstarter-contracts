@@ -27,10 +27,16 @@
     "@openzeppelin/hardhat-upgrades": "1.10.0",
     "@openzeppelin/test-environment": "0.1.9",
     "@openzeppelin/test-helpers": "0.5.10",
+    "@xchainjs/xchain-crypto": "0.3.0",
+    "bech32": "2.0.0",
+    "bip32": "4.0.0",
     "chai": "4.3.4",
+    "create-hash": "1.2.0",
     "ethereum-waffle": "3.3.0",
     "ethers": "5.1.4",
+    "json-stable-stringify": "1.1.0",
     "keccak256": "1.0.3",
-    "merkletreejs": "0.2.24"
+    "merkletreejs": "0.2.24",
+    "tiny-secp256k1": "2.2.3"
   }
 }

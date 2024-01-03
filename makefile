@@ -31,12 +31,12 @@ deployzk:
 		--private-key $(THORSTARTER_DEPLOYER_PRIVATE_KEY)
 
 c:
-	zkcast call 0x860b22C9d78C935dc5E6eA9699B5F0E162615911 "amountVesting() view returns (uint)" \
+	zkcast call 0xebad0b14aae6589ca79849d4dbf529e05021dcf4 "amountTotal() view returns (uint)" \
 		--chain 324 \
 		--rpc-url $(RPC_URL_ZKSYNC)
 
 call:
-	zkcast zks 0x313f9bf711351eae2c34d00bb36fb5de0b197e5b "withdrawToken(address,uint)" "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4" "2500000" \
+	zkcast zks 0xebad0b14aae6589ca79849d4dbf529e05021dcf4 "withdrawToken(address,uint)" "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4" "21142179227" \
 		--chain 324 \
 		--rpc-url $(RPC_URL_ZKSYNC) \
 		--private-key $(THORSTARTER_DEPLOYER_PRIVATE_KEY)
