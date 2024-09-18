@@ -18,6 +18,8 @@
 - TiersInfo: https://etherscan.io/address/0x87AE15ac6E230Adb1E2C8Dd18E6c0685EbbcB641
 - SkyrimRefund: https://etherscan.io/address/0xb8C1Aaf54751efA11D2D8A5DF503b8afB6d80322
 - EmissionsPrivateDispenserStatic: https://etherscan.io/address/0xcCe70dfb669832F3263caEa571135D55DC02B0Fa
+- MerkleClaimer: https://etherscan.io/address/0x0c8160dB95e31292522aDB1AD1958eA1dbCf2b19
+- Staking: https://etherscan.io/address/0x0b660510Ef799bb83c3340338Ec1C7091377e86F
 
 ### Sales
 
